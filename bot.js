@@ -1,9 +1,9 @@
 /**
  * Claude + TradingView MCP — Automated Trading Bot
  *
- * Cloud mode: runs on Railway on a schedule. Pulls candle data direct from
- * Binance (free, no auth), calculates all indicators, runs safety check,
- * executes via BitGet if everything lines up.
+ * Cloud mode: runs on Railway on a schedule. Pulls candle data from
+ * Kraken (free, no auth), calculates all indicators, runs safety check,
+ * executes via Kraken if everything lines up.
  *
  * Local mode: run manually — node bot.js
  * Cloud mode: deploy to Railway, set env vars, Railway triggers on cron schedule
@@ -17,7 +17,7 @@ import { execSync } from "child_process";
 // ─── Onboarding ───────────────────────────────────────────────────────────────
 
 function checkOnboarding() {
-  const required = ["BITGET_API_KEY", "BITGET_SECRET_KEY", "BITGET_PASSPHRASE"];
+  const required = ["BITGET_API_KEY", "BITGET_SECRET_KEY"];
   const missing = required.filter((k) => !process.env[k]);
 
   if (!existsSync(".env")) {
@@ -27,10 +27,9 @@ function checkOnboarding() {
     writeFileSync(
       ".env",
       [
-        "# BitGet credentials",
+        "# Kraken credentials",
         "BITGET_API_KEY=",
         "BITGET_SECRET_KEY=",
-        "BITGET_PASSPHRASE=",
         "",
         "# Trading config",
         "PORTFOLIO_VALUE_USD=1000",
@@ -45,7 +44,7 @@ function checkOnboarding() {
       execSync("open .env");
     } catch {}
     console.log(
-      "Fill in your BitGet credentials in .env then re-run: node bot.js\n",
+      "Fill in your Kraken credentials in .env then re-run: node bot.js\n",
     );
     process.exit(0);
   }
@@ -79,11 +78,10 @@ const CONFIG = {
   maxTradesPerDay: parseInt(process.env.MAX_TRADES_PER_DAY || "3"),
   paperTrading: process.env.PAPER_TRADING !== "false",
   tradeMode: process.env.TRADE_MODE || "spot",
-  bitget: {
+  kraken: {
     apiKey: process.env.BITGET_API_KEY,
-    secretKey: process.env.BITGET_SECRET_KEY,
-    passphrase: process.env.BITGET_PASSPHRASE,
-    baseUrl: process.env.BITGET_BASE_URL || "https://api.bitget.com",
+    privateKey: process.env.BITGET_SECRET_KEY,
+    baseUrl: "https://api.kraken.com",
   },
 };
 
@@ -326,56 +324,59 @@ function checkTradeLimits(log) {
   return true;
 }
 
-// ─── BitGet Execution ────────────────────────────────────────────────────────
+// ─── Kraken Execution ────────────────────────────────────────────────────────
 
-function signBitGet(timestamp, method, path, body = "") {
-  const message = `${timestamp}${method}${path}${body}`;
-  return crypto
-    .createHmac("sha256", CONFIG.bitget.secretKey)
-    .update(message)
-    .digest("base64");
+// Kraken symbol map (Binance-style → Kraken pair)
+const KRAKEN_SYMBOL_MAP = {
+  "BTCUSDT": "XBTUSD",
+  "ETHUSDT": "ETHUSD",
+  "XRPUSDT": "XRPUSD",
+  "LINKUSDT": "LINKUSD",
+  "HBARUSDT": "HBARUSD",
+  "XLMUSDT": "XLMUSD",
+  "TAOUSDT": "TAOUSD",
+  "FLRUSDT": "FLRUSD",
+  "SHIBUSDT": "SHIBUSD",
+};
+
+function signKraken(path, nonce, postData) {
+  const secret = Buffer.from(CONFIG.kraken.privateKey, "base64");
+  const message = path + crypto.createHash("sha256").update(nonce + postData).digest("binary");
+  return crypto.createHmac("sha512", secret).update(message, "binary").digest("base64");
 }
 
-async function placeBitGetOrder(symbol, side, sizeUSD, price) {
-  const quantity = (sizeUSD / price).toFixed(6);
-  const timestamp = Date.now().toString();
-  const path =
-    CONFIG.tradeMode === "spot"
-      ? "/api/v2/spot/trade/placeOrder"
-      : "/api/v2/mix/order/placeOrder";
+async function placeKrakenOrder(symbol, side, sizeUSD, price) {
+  const pair = KRAKEN_SYMBOL_MAP[symbol] || symbol;
+  const volume = (sizeUSD / price).toFixed(8);
+  const nonce = Date.now().toString();
+  const path = "/0/private/AddOrder";
 
-  const body = JSON.stringify({
-    symbol,
-    side,
-    orderType: "market",
-    quantity,
-    ...(CONFIG.tradeMode === "futures" && {
-      productType: "USDT-FUTURES",
-      marginMode: "isolated",
-      marginCoin: "USDT",
-    }),
-  });
+  const postData = new URLSearchParams({
+    nonce,
+    ordertype: "market",
+    type: side === "buy" ? "buy" : "sell",
+    volume,
+    pair,
+  }).toString();
 
-  const signature = signBitGet(timestamp, "POST", path, body);
+  const signature = signKraken(path, nonce, postData);
 
-  const res = await fetch(`${CONFIG.bitget.baseUrl}${path}`, {
+  const res = await fetch(`${CONFIG.kraken.baseUrl}${path}`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      "ACCESS-KEY": CONFIG.bitget.apiKey,
-      "ACCESS-SIGN": signature,
-      "ACCESS-TIMESTAMP": timestamp,
-      "ACCESS-PASSPHRASE": CONFIG.bitget.passphrase,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "API-Key": CONFIG.kraken.apiKey,
+      "API-Sign": signature,
     },
-    body,
+    body: postData,
   });
 
   const data = await res.json();
-  if (data.code !== "00000") {
-    throw new Error(`BitGet order failed: ${data.msg}`);
+  if (data.error && data.error.length > 0) {
+    throw new Error(`Kraken order failed: ${data.error[0]}`);
   }
 
-  return data.data;
+  return { orderId: data.result.txid[0] };
 }
 
 // ─── Tax CSV Logging ─────────────────────────────────────────────────────────
@@ -453,7 +454,7 @@ function writeTradeCsv(logEntry) {
   const row = [
     date,
     time,
-    "BitGet",
+    "Kraken",
     logEntry.symbol,
     side,
     quantity,
@@ -600,7 +601,7 @@ async function run() {
         `\n🔴 PLACING LIVE ORDER — $${tradeSize.toFixed(2)} BUY ${CONFIG.symbol}`,
       );
       try {
-        const order = await placeBitGetOrder(
+        const order = await placeKrakenOrder(
           CONFIG.symbol,
           "buy",
           tradeSize,
