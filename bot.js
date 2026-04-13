@@ -107,35 +107,46 @@ function countTodaysTrades(log) {
   ).length;
 }
 
-// ─── Market Data (Binance public API — free, no auth) ───────────────────────
+// ─── Market Data (Kraken public API — free, no auth, no geo-block) ───────────
 
 async function fetchCandles(symbol, interval, limit = 100) {
-  // Map our timeframe format to Binance interval format
-  const intervalMap = {
-    "1m": "1m",
-    "3m": "3m",
-    "5m": "5m",
-    "15m": "15m",
-    "30m": "30m",
-    "1H": "1h",
-    "4H": "4h",
-    "1D": "1d",
-    "1W": "1w",
+  // Map symbol from Binance format to Kraken format
+  const symbolMap = {
+    "BTCUSDT": "XBTUSD",
+    "ETHUSDT": "ETHUSD",
+    "XRPUSDT": "XRPUSD",
+    "LINKUSDT": "LINKUSD",
+    "HBARUSDT": "HBARUSD",
+    "XLMUSDT": "XLMUSD",
+    "TAOUSDT": "TAOUSD",
+    "FLRUSDT": "FLRUSD",
+    "SHIBUSDT": "SHIBUSD",
   };
-  const binanceInterval = intervalMap[interval] || "1m";
+  const krakenSymbol = symbolMap[symbol] || symbol;
 
-  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${binanceInterval}&limit=${limit}`;
+  // Map timeframe to Kraken interval in minutes
+  const intervalMap = {
+    "1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30,
+    "1H": 60, "4H": 240, "1D": 1440, "1W": 10080,
+  };
+  const krakenInterval = intervalMap[interval] || 1;
+
+  const url = `https://api.kraken.com/0/public/OHLC?pair=${krakenSymbol}&interval=${krakenInterval}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Binance API error: ${res.status}`);
-  const data = await res.json();
+  if (!res.ok) throw new Error(`Kraken API error: ${res.status}`);
+  const json = await res.json();
+  if (json.error && json.error.length > 0) throw new Error(`Kraken API error: ${json.error[0]}`);
+
+  const pairKey = Object.keys(json.result).find(k => k !== "last");
+  const data = json.result[pairKey].slice(-limit);
 
   return data.map((k) => ({
-    time: k[0],
+    time: k[0] * 1000,
     open: parseFloat(k[1]),
     high: parseFloat(k[2]),
     low: parseFloat(k[3]),
     close: parseFloat(k[4]),
-    volume: parseFloat(k[5]),
+    volume: parseFloat(k[6]),
   }));
 }
 
@@ -518,7 +529,7 @@ async function run() {
   }
 
   // Fetch candle data — need enough for EMA(8) + full session for VWAP
-  console.log("\n── Fetching market data from Binance ───────────────────\n");
+  console.log("\n── Fetching market data from Kraken ────────────────────\n");
   const candles = await fetchCandles(CONFIG.symbol, CONFIG.timeframe, 500);
   const closes = candles.map((c) => c.close);
   const price = closes[closes.length - 1];
