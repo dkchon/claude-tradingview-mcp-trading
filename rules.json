@@ -1,50 +1,105 @@
 {
-  "watchlist": ["BTCUSDT"],
-  "default_timeframe": "1m",
-
+  "watchlist": ["XRPUSDT", "BTCUSDT", "ETHUSDT"],
+  "default_timeframe": "4H",
   "strategy": {
-    "name": "VWAP + RSI(3) + EMA(8) Scalping Strategy",
-    "sources": ["Lewis Jackson"],
-    "description": "Three indicators, each doing a different job. EMA(8) for trend direction, VWAP for session bias, RSI(3) for entry timing. All three must align before a trade fires."
+    "name": "CoinsKid Liquidity + Wyckoff + Elliott Wave",
+    "sources": ["CoinsKid — https://www.youtube.com/@CoinsKid"]
   },
-
   "indicators": {
-    "ema_8": "Trend direction. Price above EMA(8) = bullish momentum. Below = bearish.",
-    "vwap": "Session bias. Price above VWAP = buyers in control. Below = sellers. Resets at midnight UTC.",
-    "rsi_3": "Entry timing. RSI on 3 candles only — extremely sensitive. Below 30 in an uptrend = snap-back setup. Above 70 in a downtrend = reversal likely."
+    "liquidity_heatmap": "CoinsKid's custom coinskid.com heatmap showing liquidation clusters by timeframe (12H, 1D, 3D, monthly). Price acts as a magnet toward liquidity pockets. Used to find the nearest hot-spot target and set directional bias.",
+    "rsi_4h": "RSI on the 4-hour chart. Key level: 13.5 = 'max bid zone' — extreme oversold where CoinsKid places bids expecting a bounce to the daily ribbon. Also used to draw trend lines and spot bullish/bearish divergences.",
+    "rsi_weekly": "Weekly RSI used for macro bias. Buy zone at deeply oversold readings. Bullish divergence on the weekly is a key accumulation signal. Required to confirm a bottom is forming.",
+    "rsi_daily": "Daily RSI used for bullish divergence confirmation. A bullish divergence on the daily is required for CoinsKid to call a bottom credible.",
+    "macd_4h": "MACD on the 4-hour chart. Trend lines drawn on the MACD histogram. Compression (converging highs and lows) signals an impending expansion. MACD golden cross below zero line adds confluence for longs.",
+    "ema_20_weekly": "20-week EMA (thick yellow line) = Bull Market Support (BMS). Price above = bullish / accumulation environment. Price below = bearish / downtrend. Reclaiming BMS on a weekly close is the key bullish trigger. BMS for BTC ~$80K, XRP ~$1.74.",
+    "ema_20_daily": "20-day EMA used as dynamic resistance/support in shorter-term trades. After an RSI bounce at 13.5 the price tends to run up to the daily EMA ribbon — first take-profit zone for swing entries.",
+    "daily_ribbon": "Daily EMA ribbon (multiple EMAs). After a 4H RSI extreme bounce, price typically runs into the ribbon — first take-profit zone for swing entries.",
+    "tether_dominance": "USDT.D used as an inverse correlation indicator. Rising tether dominance = bearish for crypto. Bearish divergence on USDT.D + falling below key support = bullish signal for BTC/XRP. CoinsKid tracks this constantly for macro confirmation.",
+    "btc_accumulation_band": "Custom coinskid.com indicator. Green buy dot printed on weekly = accumulation signal. Requires a weekly close above the band for full confirmation. Multiple trigger points (up to 13) stack to increase probability.",
+    "btc_volatility_index": "Custom coinskid.com oscillator. Blue flash = buy signal at bear market bottoms. Red = sell zone at tops. Used to time macro reversals alongside price structure.",
+    "btc_std": "Short-Term Accumulation and Distribution indicator. Red sell dot = distribution at tops. Green buy dot = accumulation at bottoms. Combined with Wyckoff logic.",
+    "bms_signal_micro_macro": "coinskid.com BMS signal scanner. Micro = intraday/short-term zone (buy zone, neutral, sell zone). Macro = weekly position signal. Coins in macro buy zone + oversold weekly RSI = spot accumulation candidates.",
+    "liquidity_dance_ld": "Custom coinskid.com indicator tracking liquidity inflows. When it flatlines/tops out it signals the end of a rally (liquidity exhausted). Drop signals rotation — watch gold/BTC correlation.",
+    "ppi": "Producer Price Index chart overlaid as a macro divergence tool. Bearish divergence on PPI vs price highs flags cycle tops. Bullish reading flags cycle bottoms.",
+    "fibonacci": "1.618 Fibonacci extension used as key selling climax / capitulation target. 0.786 fib used as deep retracement target for ABC corrections. 0.382 used as resistance in bounces.",
+    "elliott_wave_count": "5-wave impulse identification. Wave 1 up, ABC wave 2 correction, wave 3 is the largest and most tradable. C-wave equals capitulation opportunity. After 5 waves up do not buy — distribution likely.",
+    "god_candle_levels": "Significant breakout or breakdown candles on higher timeframes. Price always returns to back-test these as support or resistance. Key horizontal levels for entries and targets.",
+    "tether_liquidity_forecast": "Forecast toggle on coinskid.com heatmap. Algorithm derived from RSI, OBV, Liquidity, and ATR. Outputs entry point and target liquidity bucket for a trade."
   },
-
   "bias_criteria": {
-    "bullish": ["Price is above VWAP", "Price is above EMA(8)"],
-    "bearish": ["Price is below VWAP", "Price is below EMA(8)"]
-  },
-
-  "entry_rules": {
-    "long": [
-      "Price is above VWAP — buyers in control for the session",
-      "Price is above EMA(8) — uptrend confirmed",
-      "RSI(3) has dropped below 30 — short-term pullback in an uptrend, snap-back likely"
+    "bullish": [
+      "Weekly 20 EMA (BMS) is reclaimed with a weekly close above it",
+      "Tether dominance (USDT.D) is in a bearish downtrend or has printed a bearish divergence",
+      "RSI on 4H is at or near 13.5 (extreme oversold, max bid zone) with no bearish divergence",
+      "Weekly RSI is deeply oversold and printing a bullish divergence (higher lows in RSI vs lower lows in price)",
+      "Daily RSI bullish divergence confirmed",
+      "BTC Accumulation Band green dot printed with weekly close above band",
+      "Wyckoff: selling climax printed, followed by automatic rally and spring; price trending back above 20W EMA",
+      "Elliott Wave 2 ABC correction complete, setting up for wave 3 impulse",
+      "MACD golden cross below zero line on 4H adds confluence",
+      "Gold is topping or going sideways while BTC/XRP are bottoming — liquidity rotation expected to crypto",
+      "Coin is in macro buy zone on the coinskid.com BMS signal"
     ],
-    "short": [
-      "Price is below VWAP — sellers in control",
-      "Price is below EMA(8) — downtrend confirmed",
-      "RSI(3) has spiked above 70 — overbought in a downtrend, reversal likely"
+    "bearish": [
+      "Price is below the 20-week EMA (BMS) and BMS is acting as resistance",
+      "Tether dominance is in an uptrend or making higher lows (increasing dominance = crypto outflow)",
+      "5 impulsive waves up completed on weekly/daily — distribution risk, do not buy",
+      "Macro bearish divergence on weekly RSI: higher highs in price, lower highs in RSI",
+      "Elliott Wave B-wave bull trap: 3-wave move up after a 5-wave decline — sell rallies",
+      "BTC Volatility Index or PPI showing bearish divergence at cycle highs",
+      "Retail/dumb money indicator shows retail piling in at highs (historically a top signal)",
+      "Coin is in macro sell zone on the coinskid.com BMS signal",
+      "USDT.D making a higher low from an impulsive wave top — confirms bear market continuation"
+    ],
+    "neutral": [
+      "Price compressing between lower highs and higher lows (pennant/symmetrical triangle) — wait for breakout direction",
+      "MACD showing compression with converging trend lines — expansion coming but direction unclear",
+      "Between the selling climax and spring phases of Wyckoff accumulation — sideways chop expected",
+      "BTC accumulation band triggered but no weekly close confirmation yet"
     ]
   },
-
+  "entry_rules": {
+    "long": [
+      "SWING LONG (4H RSI max bid zone): Set TradingView alert on 4H RSI at 13.5. When triggered, bid at current price. Stop loss: below the most recent pivot low printed at the RSI extreme. Target TP1: daily EMA ribbon.",
+      "Confirm no bearish divergence on 4H RSI before entering — if RSI is printing lower lows alongside price, reduce size or skip.",
+      "MACRO LONG (spot accumulation): price reclaims weekly 20 EMA (BMS) with a weekly close above it AND weekly RSI bullish divergence AND BTC Accumulation Band green dot. Scale into spot long. Stop: below the prior swing low / spring low.",
+      "God candle back test long: price returns to back-test a prior major breakout candle as support. Bid at that level with stop below the prior pivot low.",
+      "Wyckoff spring long: after a selling climax, price springs below a prior structural low to grab liquidity then reverses sharply. Buy the spring candle close, stop below the spring low.",
+      "Elliott Wave C-wave long: identify 5 waves down completing a C-wave. Enter at the C-wave low, stop below C-wave low, target the Fibonacci retracement of the whole A-B-C move.",
+      "Ascending triangle third contact long: price tests resistance a third time after two prior touches and two higher lows. Buy breakout above resistance or on support at the third higher low. Stop below the third higher low.",
+      "Bullish divergence entry: lower low in price, higher low in 4H or daily RSI plus MACD. Enter on the confirmation candle, stop below the price low."
+    ],
+    "short": [
+      "SWING SHORT (5-wave top): after 5 impulsive waves up on the 4H/daily, look for an ABC correction to begin. Enter short at the anticipated B-wave high (bearish divergence + overbought RSI). Stop above the B-wave high. Target C-wave low.",
+      "God candle breakdown back test short: price broke down impulsively, then rallies back to back-test the breakdown level as resistance. Short at that resistance level. Stop above the prior swing high.",
+      "BMS rejection short: price rallies back to the 20-week EMA from below, fails to close above it, and prints a reversal candle on the weekly. Short with stop above the weekly BMS level.",
+      "Macro bearish divergence short: price making higher highs while weekly RSI makes lower highs. Short at the higher high in price or on the next rollover candle. Stop above the prior swing high.",
+      "Tether dominance breakout short: USDT.D breaks out of a falling channel or ascending triangle upward. Short BTC/XRP with stops above the prior swing high. Target the lower heatmap liquidity pocket.",
+      "Heatmap sell zone short: coin is in micro sell zone on coinskid.com BMS signal AND nearest heatmap liquidity hot spot is below current price. Short with target at the lower liquidity pocket."
+    ]
+  },
   "exit_rules": [
-    "Exit when RSI(3) crosses back above 50 (for longs) or below 50 (for shorts)",
-    "Hard stop: 0.3% below entry for longs, 0.3% above entry for shorts",
-    "Take profit at next VWAP touch or EMA(8) cross"
+    "TP1 — partial exit for longs: daily EMA ribbon. Take a portion of the position off the table and trail stop to break even on the remainder.",
+    "TP2 — full exit for longs: next major liquidity pocket above current price as identified on the coinskid.com heatmap forecast toggle.",
+    "Full exit for longs: price reaches the weekly 20 EMA (BMS) from below and fails to close above it — exit or tighten stop aggressively.",
+    "Full exit for longs: 5-wave impulse completes on 4H/daily — do not hold through the likely ABC correction that follows.",
+    "Full exit for shorts: price reaches the lower liquidity hot spot on the heatmap OR 4H RSI drops to ~13.5 — cover shorts; do not short into extreme oversold.",
+    "Stop loss for longs: below the most recent pivot low that confirmed the setup. If that low is swept the pattern is negated.",
+    "Stop loss for shorts: above the most recent pivot high that confirmed the resistance. If price closes above that high the pattern is negated.",
+    "Macro exit signal for longs: BTC Volatility Index flashes red or BTC Strad enters sell zone — reduce or close long exposure.",
+    "Macro exit signal for longs: 5 impulsive waves up on the weekly AND macro bearish divergence on weekly RSI AND tether dominance making a higher low — exit longs."
   ],
-
   "risk_rules": [
-    "Risk maximum 1% of portfolio per trade",
-    "Maximum trade size capped by MAX_TRADE_SIZE_USD in .env",
-    "Maximum trades per day capped by MAX_TRADES_PER_DAY in .env",
-    "Do not trade if price is more than 1.5% away from VWAP — overextended",
-    "Paper trade first — validate this strategy on your specific asset before going live"
+    "Always use a stop loss — explicitly: the stop loss negates the pattern; never trade without one.",
+    "Stop loss placement: on the most recent pivot low (for longs) or pivot high (for shorts) that would negate the pattern if swept.",
+    "Do not risk life savings on any single trade; size positions so that a stop-out is a manageable loss.",
+    "Do not buy after 5 impulsive waves up — high probability of distribution and ABC correction beginning.",
+    "Do not short into the 4H RSI 13.5 zone — this is the max bid zone where shorts get squeezed; cover before reaching this level.",
+    "If buying in a downtrend (price below 20W EMA/BMS), treat it as a short-term swing trade only — do not hold as a long-term spot position until BMS is reclaimed on a weekly close.",
+    "Scale into longs during Wyckoff accumulation (selling climax and spring phases) rather than going all-in at once.",
+    "Confluence stacking required: at minimum 2 to 3 confirming signals (e.g., RSI divergence AND heatmap liquidity pocket AND Elliott wave count) before entering.",
+    "After TP1 (daily ribbon), move stop to break even and trail behind recent pivot lows.",
+    "Position sizing is not specified numerically in transcripts — CoinsKid implies small-to-moderate size on swing trades and larger scale-in during confirmed macro accumulation zones."
   ],
-
-  "notes": "Scalping strategy — designed for 1m to 5m timeframes. RSI(3) is intentionally fast and sensitive. Do not apply to higher timeframes."
+  "notes": "CoinsKid (UK-based, 271K subscribers, focused on XRP and BTC) builds his strategy on three pillars: (1) Liquidity — his coinskid.com heatmaps show where price will be drawn as a magnet to grab stop clusters; (2) Wyckoff market cycles — selling climax, spring, accumulation, and markup phases; (3) Elliott Wave counting — 5-wave impulses and ABC corrections to time precise entries and exits. Primary trading timeframe is the 4H with macro context from the weekly. Signature entry is the 4H RSI 13.5 max bid zone — a TradingView alert at RSI 13.5 that triggers a reactive buy bid with stop below the pivot low and TP at the daily ribbon. The 20-week EMA (thick yellow line / BMS) is the single most important indicator for macro bias. Tether dominance is used daily as an inverse correlation filter. Custom indicators available on coinskid.com: BTC Accumulation Band, Volatility Index, BTC Strad, Liquidity Dance, and the BMS Micro/Macro signal scanner. Real-time trade entries posted in paid Discord (ELITE CKC). Primary focus is XRPUSDT and BTCUSDT."
 }
