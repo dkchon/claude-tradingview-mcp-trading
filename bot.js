@@ -381,6 +381,33 @@ async function placeKrakenOrder(symbol, side, sizeUSD, price) {
   return { orderId: data.result.txid[0] };
 }
 
+// ─── Position Tracking ───────────────────────────────────────────────────────
+
+const POSITIONS_FILE = "positions.json";
+
+function loadPositions() {
+  if (!existsSync(POSITIONS_FILE)) return {};
+  return JSON.parse(readFileSync(POSITIONS_FILE, "utf8"));
+}
+
+function savePositions(positions) {
+  writeFileSync(POSITIONS_FILE, JSON.stringify(positions, null, 2));
+}
+
+function checkExitConditions(position, price, rsi3) {
+  const { side, entryPrice } = position;
+  if (side === "buy") {
+    const stopLoss = entryPrice * 0.97;
+    if (rsi3 > 70) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} above 70` };
+    if (price < stopLoss) return { exit: true, reason: `Stop loss — price $${price.toFixed(4)} below entry -3% ($${stopLoss.toFixed(4)})` };
+  } else {
+    const stopLoss = entryPrice * 1.03;
+    if (rsi3 < 30) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} below 30` };
+    if (price > stopLoss) return { exit: true, reason: `Stop loss — price $${price.toFixed(4)} above entry +3% ($${stopLoss.toFixed(4)})` };
+  }
+  return { exit: false };
+}
+
 // ─── Tax CSV Logging ─────────────────────────────────────────────────────────
 
 const CSV_FILE = process.env.USERPROFILE
@@ -427,7 +454,20 @@ function writeTradeCsv(logEntry) {
   let mode = "";
   let notes = "";
 
-  if (!logEntry.allPass) {
+  if (logEntry.action === "close") {
+    // Exit trade row
+    side = logEntry.side === "buy" ? "SELL" : "BUY";
+    quantity = logEntry.quantity.toFixed(6);
+    totalUSD = (logEntry.quantity * logEntry.price).toFixed(2);
+    fee = (parseFloat(totalUSD) * 0.001).toFixed(4);
+    const pnl = logEntry.side === "buy"
+      ? ((logEntry.price - logEntry.entryPrice) * logEntry.quantity).toFixed(4)
+      : ((logEntry.entryPrice - logEntry.price) * logEntry.quantity).toFixed(4);
+    netAmount = (parseFloat(totalUSD) - parseFloat(fee)).toFixed(2);
+    orderId = logEntry.orderId || "";
+    mode = logEntry.paperTrading ? "PAPER" : "LIVE";
+    notes = `${logEntry.exitReason} | P&L: $${pnl}`;
+  } else if (!logEntry.allPass) {
     const failed = logEntry.conditions
       .filter((c) => !c.pass)
       .map((c) => c.label)
@@ -436,7 +476,7 @@ function writeTradeCsv(logEntry) {
     orderId = "BLOCKED";
     notes = `Failed: ${failed}`;
   } else if (logEntry.paperTrading) {
-    side = "BUY";
+    side = logEntry.tradeSide === "sell" ? "SELL" : "BUY";
     quantity = (logEntry.tradeSize / logEntry.price).toFixed(6);
     totalUSD = logEntry.tradeSize.toFixed(2);
     fee = (logEntry.tradeSize * 0.001).toFixed(4);
@@ -445,7 +485,7 @@ function writeTradeCsv(logEntry) {
     mode = "PAPER";
     notes = "All conditions met";
   } else {
-    side = "BUY";
+    side = logEntry.tradeSide === "sell" ? "SELL" : "BUY";
     quantity = (logEntry.tradeSize / logEntry.price).toFixed(6);
     totalUSD = logEntry.tradeSize.toFixed(2);
     fee = (logEntry.tradeSize * 0.001).toFixed(4);
@@ -509,7 +549,7 @@ function generateTaxSummary() {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-async function runSymbol(symbol, timeframe, rules, log, tradeSize) {
+async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
   console.log(`\n${"─".repeat(59)}`);
   console.log(`  ${symbol}`);
   console.log(`${"─".repeat(59)}`);
@@ -518,31 +558,80 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize) {
   const candles = await fetchCandles(symbol, timeframe, 500);
   const closes = candles.map((c) => c.close);
   const price = closes[closes.length - 1];
+  const p = price < 0.01 ? 8 : price < 1 ? 5 : 2;
 
   const ema8 = calcEMA(closes, 8);
   const vwap = calcVWAP(candles);
   const rsi3 = calcRSI(closes, 3);
 
-  console.log(`  Price: $${price.toFixed(price < 0.01 ? 8 : 2)}  EMA(8): $${ema8.toFixed(price < 0.01 ? 8 : 2)}  VWAP: $${vwap ? vwap.toFixed(price < 0.01 ? 8 : 2) : "N/A"}  RSI(3): ${rsi3 ? rsi3.toFixed(2) : "N/A"}`);
+  console.log(`  Price: $${price.toFixed(p)}  EMA(8): $${ema8.toFixed(p)}  VWAP: $${vwap ? vwap.toFixed(p) : "N/A"}  RSI(3): ${rsi3 ? rsi3.toFixed(2) : "N/A"}`);
 
   if (!vwap || !rsi3) {
     console.log("  ⚠️  Not enough data — skipping.");
-    return null;
+    return [];
   }
 
+  const entries = [];
+
+  // ── Check open position first ──────────────────────────────────────────────
+  const openPosition = positions[symbol];
+  if (openPosition) {
+    const { exit, reason } = checkExitConditions(openPosition, price, rsi3);
+    console.log(`\n── Open Position — ${openPosition.side.toUpperCase()} @ $${openPosition.entryPrice.toFixed(p)} ──`);
+    if (exit) {
+      console.log(`\n💰 EXIT TRIGGERED — ${reason}`);
+      const closeEntry = {
+        action: "close",
+        timestamp: new Date().toISOString(),
+        symbol,
+        price,
+        side: openPosition.side,
+        quantity: openPosition.quantity,
+        entryPrice: openPosition.entryPrice,
+        exitReason: reason,
+        paperTrading: CONFIG.paperTrading,
+        orderId: null,
+      };
+      if (CONFIG.paperTrading) {
+        closeEntry.orderId = `PAPER-CLOSE-${Date.now()}`;
+        console.log(`📋 PAPER SELL — ${openPosition.quantity.toFixed(6)} ${symbol} @ $${price.toFixed(p)}`);
+      } else {
+        try {
+          const order = await placeKrakenOrder(symbol, "sell", openPosition.quantity * price, price);
+          closeEntry.orderId = order.orderId;
+          console.log(`✅ SELL ORDER PLACED — ${order.orderId}`);
+        } catch (err) {
+          console.log(`❌ SELL FAILED — ${err.message}`);
+          closeEntry.error = err.message;
+        }
+      }
+      delete positions[symbol];
+      entries.push(closeEntry);
+      writeTradeCsv(closeEntry);
+      return entries;
+    } else {
+      const pnl = openPosition.side === "buy"
+        ? ((price - openPosition.entryPrice) / openPosition.entryPrice * 100).toFixed(2)
+        : ((openPosition.entryPrice - price) / openPosition.entryPrice * 100).toFixed(2);
+      console.log(`  Holding — unrealised P&L: ${pnl >= 0 ? "+" : ""}${pnl}%`);
+      console.log(`  Exit when: ${openPosition.side === "buy" ? "RSI(3) > 70 or price < entry -3%" : "RSI(3) < 30 or price > entry +3%"}`);
+      return entries;
+    }
+  }
+
+  // ── No open position — look for entry ─────────────────────────────────────
   const { results, allPass } = runSafetyCheck(price, ema8, vwap, rsi3, rules);
+
+  const bullishBias = price > vwap && price > ema8;
+  const tradeSide = bullishBias ? "buy" : "sell";
 
   const logEntry = {
     timestamp: new Date().toISOString(),
-    symbol,
-    timeframe,
-    price,
+    symbol, timeframe, price,
     indicators: { ema8, vwap, rsi3 },
-    conditions: results,
-    allPass,
-    tradeSize,
-    orderPlaced: false,
-    orderId: null,
+    conditions: results, allPass, tradeSize,
+    tradeSide,
+    orderPlaced: false, orderId: null,
     paperTrading: CONFIG.paperTrading,
     limits: {
       maxTradeSizeUSD: CONFIG.maxTradeSizeUSD,
@@ -559,15 +648,16 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize) {
     failed.forEach((f) => console.log(`   - ${f}`));
   } else {
     console.log(`✅ ALL CONDITIONS MET`);
+    const quantity = tradeSize / price;
     if (CONFIG.paperTrading) {
-      console.log(`\n📋 PAPER TRADE — would buy ${symbol} ~$${tradeSize.toFixed(2)} at market`);
+      console.log(`\n📋 PAPER ${tradeSide.toUpperCase()} — ${symbol} ~$${tradeSize.toFixed(2)} at market`);
       console.log(`   (Set PAPER_TRADING=false in .env to place real orders)`);
       logEntry.orderPlaced = true;
       logEntry.orderId = `PAPER-${Date.now()}`;
     } else {
-      console.log(`\n🔴 PLACING LIVE ORDER — $${tradeSize.toFixed(2)} BUY ${symbol}`);
+      console.log(`\n🔴 PLACING LIVE ORDER — $${tradeSize.toFixed(2)} ${tradeSide.toUpperCase()} ${symbol}`);
       try {
-        const order = await placeKrakenOrder(symbol, "buy", tradeSize, price);
+        const order = await placeKrakenOrder(symbol, tradeSide, tradeSize, price);
         logEntry.orderPlaced = true;
         logEntry.orderId = order.orderId;
         console.log(`✅ ORDER PLACED — ${order.orderId}`);
@@ -576,9 +666,19 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize) {
         logEntry.error = err.message;
       }
     }
+    if (logEntry.orderPlaced || CONFIG.paperTrading) {
+      positions[symbol] = {
+        side: tradeSide,
+        entryPrice: price,
+        quantity,
+        entryTime: logEntry.timestamp,
+        orderId: logEntry.orderId,
+      };
+    }
   }
 
-  return logEntry;
+  entries.push(logEntry);
+  return entries;
 }
 
 async function run() {
@@ -608,11 +708,20 @@ async function run() {
 
   const tradeSize = Math.min(CONFIG.portfolioValue * 0.01, CONFIG.maxTradeSizeUSD);
 
+  // Load open positions
+  const positions = loadPositions();
+  const openCount = Object.keys(positions).length;
+  if (openCount > 0) {
+    console.log(`\n── Open Positions: ${openCount} ─────────────────────────────────`);
+    Object.entries(positions).forEach(([sym, pos]) => {
+      console.log(`  ${sym} — ${pos.side.toUpperCase()} @ $${pos.entryPrice} since ${pos.entryTime.slice(0,16)}`);
+    });
+  }
+
   console.log("\n── Fetching market data from Kraken ────────────────────\n");
 
   // Run each symbol sequentially to avoid rate limits
   for (const symbol of watchlist) {
-    // Re-check limit before each symbol in case we hit it mid-loop
     const todayCount = countTodaysTrades(log);
     if (todayCount >= CONFIG.maxTradesPerDay) {
       console.log(`\n🚫 Daily trade limit reached (${todayCount}/${CONFIG.maxTradesPerDay}) — stopping.`);
@@ -620,16 +729,19 @@ async function run() {
     }
 
     try {
-      const logEntry = await runSymbol(symbol, timeframe, rules, log, tradeSize);
-      if (logEntry) {
-        log.trades.push(logEntry);
-        writeTradeCsv(logEntry);
+      const entries = await runSymbol(symbol, timeframe, rules, log, tradeSize, positions);
+      for (const entry of entries) {
+        if (entry.action !== "close") {
+          log.trades.push(entry);
+          writeTradeCsv(entry);
+        }
       }
     } catch (err) {
       console.log(`\n❌ Error processing ${symbol}: ${err.message}`);
     }
   }
 
+  savePositions(positions);
   saveLog(log);
   console.log(`\nDecision log saved → ${LOG_FILE}`);
   console.log("═══════════════════════════════════════════════════════════\n");
