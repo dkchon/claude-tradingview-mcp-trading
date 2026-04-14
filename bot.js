@@ -119,6 +119,8 @@ async function fetchCandles(symbol, interval, limit = 100) {
     "TAOUSDT": "TAOUSD",
     "FLRUSDT": "FLRUSD",
     "SHIBUSDT": "SHIBUSD",
+    "CCUSDT": "CCUSD",
+    "GRASSUSDT": "GRASSUSD",
   };
   const krakenSymbol = symbolMap[symbol] || symbol;
 
@@ -337,6 +339,8 @@ const KRAKEN_SYMBOL_MAP = {
   "TAOUSDT": "TAOUSD",
   "FLRUSDT": "FLRUSD",
   "SHIBUSDT": "SHIBUSD",
+  "CCUSDT": "CCUSD",
+  "GRASSUSDT": "GRASSUSD",
 };
 
 function signKraken(path, nonce, postData) {
