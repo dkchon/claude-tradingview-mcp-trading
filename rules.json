@@ -1,5 +1,5 @@
 {
-  "watchlist": ["XRPUSDT", "BTCUSDT", "ETHUSDT"],
+  "watchlist": ["BTCUSDT", "ETHUSDT", "XRPUSDT", "LINKUSDT", "HBARUSDT", "FLRUSDT", "TAOUSDT", "XLMUSDT", "SHIBUSDT"],
   "default_timeframe": "4H",
   "strategy": {
     "name": "CoinsKid Liquidity + Wyckoff + Elliott Wave",

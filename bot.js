@@ -505,67 +505,33 @@ function generateTaxSummary() {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-async function run() {
-  checkOnboarding();
-  initCsv();
-  console.log("═══════════════════════════════════════════════════════════");
-  console.log("  Claude Trading Bot");
-  console.log(`  ${new Date().toISOString()}`);
-  console.log(
-    `  Mode: ${CONFIG.paperTrading ? "📋 PAPER TRADING" : "🔴 LIVE TRADING"}`,
-  );
-  console.log("═══════════════════════════════════════════════════════════");
+async function runSymbol(symbol, timeframe, rules, log, tradeSize) {
+  console.log(`\n${"─".repeat(59)}`);
+  console.log(`  ${symbol}`);
+  console.log(`${"─".repeat(59)}`);
 
-  // Load strategy
-  const rules = JSON.parse(readFileSync("rules.json", "utf8"));
-  console.log(`\nStrategy: ${rules.strategy.name}`);
-  console.log(`Symbol: ${CONFIG.symbol} | Timeframe: ${CONFIG.timeframe}`);
-
-  // Load log and check daily limits
-  const log = loadLog();
-  const withinLimits = checkTradeLimits(log);
-  if (!withinLimits) {
-    console.log("\nBot stopping — trade limits reached for today.");
-    return;
-  }
-
-  // Fetch candle data — need enough for EMA(8) + full session for VWAP
-  console.log("\n── Fetching market data from Kraken ────────────────────\n");
-  const candles = await fetchCandles(CONFIG.symbol, CONFIG.timeframe, 500);
+  // Fetch candle data
+  const candles = await fetchCandles(symbol, timeframe, 500);
   const closes = candles.map((c) => c.close);
   const price = closes[closes.length - 1];
-  console.log(`  Current price: $${price.toFixed(2)}`);
 
-  // Calculate indicators
   const ema8 = calcEMA(closes, 8);
   const vwap = calcVWAP(candles);
   const rsi3 = calcRSI(closes, 3);
 
-  console.log(`  EMA(8):  $${ema8.toFixed(2)}`);
-  console.log(`  VWAP:    $${vwap ? vwap.toFixed(2) : "N/A"}`);
-  console.log(`  RSI(3):  ${rsi3 ? rsi3.toFixed(2) : "N/A"}`);
+  console.log(`  Price: $${price.toFixed(price < 0.01 ? 8 : 2)}  EMA(8): $${ema8.toFixed(price < 0.01 ? 8 : 2)}  VWAP: $${vwap ? vwap.toFixed(price < 0.01 ? 8 : 2) : "N/A"}  RSI(3): ${rsi3 ? rsi3.toFixed(2) : "N/A"}`);
 
   if (!vwap || !rsi3) {
-    console.log("\n⚠️  Not enough data to calculate indicators. Exiting.");
-    return;
+    console.log("  ⚠️  Not enough data — skipping.");
+    return null;
   }
 
-  // Run safety check
   const { results, allPass } = runSafetyCheck(price, ema8, vwap, rsi3, rules);
-
-  // Calculate position size
-  const tradeSize = Math.min(
-    CONFIG.portfolioValue * 0.01,
-    CONFIG.maxTradeSizeUSD,
-  );
-
-  // Decision
-  console.log("\n── Decision ─────────────────────────────────────────────\n");
 
   const logEntry = {
     timestamp: new Date().toISOString(),
-    symbol: CONFIG.symbol,
-    timeframe: CONFIG.timeframe,
+    symbol,
+    timeframe,
     price,
     indicators: { ema8, vwap, rsi3 },
     conditions: results,
@@ -581,32 +547,23 @@ async function run() {
     },
   };
 
+  console.log("\n── Decision ──────────────────────────────────────────────\n");
+
   if (!allPass) {
     const failed = results.filter((r) => !r.pass).map((r) => r.label);
     console.log(`🚫 TRADE BLOCKED`);
-    console.log(`   Failed conditions:`);
     failed.forEach((f) => console.log(`   - ${f}`));
   } else {
     console.log(`✅ ALL CONDITIONS MET`);
-
     if (CONFIG.paperTrading) {
-      console.log(
-        `\n📋 PAPER TRADE — would buy ${CONFIG.symbol} ~$${tradeSize.toFixed(2)} at market`,
-      );
+      console.log(`\n📋 PAPER TRADE — would buy ${symbol} ~$${tradeSize.toFixed(2)} at market`);
       console.log(`   (Set PAPER_TRADING=false in .env to place real orders)`);
       logEntry.orderPlaced = true;
       logEntry.orderId = `PAPER-${Date.now()}`;
     } else {
-      console.log(
-        `\n🔴 PLACING LIVE ORDER — $${tradeSize.toFixed(2)} BUY ${CONFIG.symbol}`,
-      );
+      console.log(`\n🔴 PLACING LIVE ORDER — $${tradeSize.toFixed(2)} BUY ${symbol}`);
       try {
-        const order = await placeKrakenOrder(
-          CONFIG.symbol,
-          "buy",
-          tradeSize,
-          price,
-        );
+        const order = await placeKrakenOrder(symbol, "buy", tradeSize, price);
         logEntry.orderPlaced = true;
         logEntry.orderId = order.orderId;
         console.log(`✅ ORDER PLACED — ${order.orderId}`);
@@ -617,14 +574,60 @@ async function run() {
     }
   }
 
-  // Save decision log
-  log.trades.push(logEntry);
+  return logEntry;
+}
+
+async function run() {
+  checkOnboarding();
+  initCsv();
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("  Claude Trading Bot");
+  console.log(`  ${new Date().toISOString()}`);
+  console.log(`  Mode: ${CONFIG.paperTrading ? "📋 PAPER TRADING" : "🔴 LIVE TRADING"}`);
+  console.log("═══════════════════════════════════════════════════════════");
+
+  // Load strategy and watchlist
+  const rules = JSON.parse(readFileSync("rules.json", "utf8"));
+  const watchlist = rules.watchlist || [CONFIG.symbol];
+  const timeframe = rules.default_timeframe || CONFIG.timeframe;
+
+  console.log(`\nStrategy: ${rules.strategy.name}`);
+  console.log(`Watchlist: ${watchlist.join(", ")} | Timeframe: ${timeframe}`);
+
+  // Load log and check daily limits
+  const log = loadLog();
+  const withinLimits = checkTradeLimits(log);
+  if (!withinLimits) {
+    console.log("\nBot stopping — trade limits reached for today.");
+    return;
+  }
+
+  const tradeSize = Math.min(CONFIG.portfolioValue * 0.01, CONFIG.maxTradeSizeUSD);
+
+  console.log("\n── Fetching market data from Kraken ────────────────────\n");
+
+  // Run each symbol sequentially to avoid rate limits
+  for (const symbol of watchlist) {
+    // Re-check limit before each symbol in case we hit it mid-loop
+    const todayCount = countTodaysTrades(log);
+    if (todayCount >= CONFIG.maxTradesPerDay) {
+      console.log(`\n🚫 Daily trade limit reached (${todayCount}/${CONFIG.maxTradesPerDay}) — stopping.`);
+      break;
+    }
+
+    try {
+      const logEntry = await runSymbol(symbol, timeframe, rules, log, tradeSize);
+      if (logEntry) {
+        log.trades.push(logEntry);
+        writeTradeCsv(logEntry);
+      }
+    } catch (err) {
+      console.log(`\n❌ Error processing ${symbol}: ${err.message}`);
+    }
+  }
+
   saveLog(log);
   console.log(`\nDecision log saved → ${LOG_FILE}`);
-
-  // Write tax CSV row for every run (executed, paper, or blocked)
-  writeTradeCsv(logEntry);
-
   console.log("═══════════════════════════════════════════════════════════\n");
 }
 
