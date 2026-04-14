@@ -60,11 +60,9 @@ function checkOnboarding() {
   }
 
   // Always print the CSV location so users know where to find their trade log
-  const csvPath = new URL("trades.csv", import.meta.url).pathname;
-  console.log(`\n📄 Trade log: ${csvPath}`);
+  console.log(`\n📄 Trade log: ${CSV_FILE}`);
   console.log(
-    `   Open in Google Sheets or Excel any time — or tell Claude to move it:\n` +
-      `   "Move my trades.csv to ~/Desktop" or "Move it to my Documents folder"\n`,
+    `   Open in Excel any time — auto-updates after every bot run.\n`,
   );
 }
 
@@ -385,7 +383,9 @@ async function placeKrakenOrder(symbol, side, sizeUSD, price) {
 
 // ─── Tax CSV Logging ─────────────────────────────────────────────────────────
 
-const CSV_FILE = "trades.csv";
+const CSV_FILE = process.env.USERPROFILE
+  ? `${process.env.USERPROFILE}\\Documents\\trades.csv`.replace(/\\/g, "/")
+  : "trades.csv";
 
 // Always ensure trades.csv exists with headers — open it in Excel/Sheets any time
 function initCsv() {
