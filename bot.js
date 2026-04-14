@@ -408,6 +408,22 @@ function checkExitConditions(position, price, rsi3) {
   return { exit: false };
 }
 
+// ─── Google Sheets Logging ───────────────────────────────────────────────────
+
+async function postToSheets(row) {
+  const url = process.env.GOOGLE_SHEETS_WEBHOOK;
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    });
+  } catch (err) {
+    console.log(`  ⚠️  Google Sheets post failed: ${err.message}`);
+  }
+}
+
 // ─── Tax CSV Logging ─────────────────────────────────────────────────────────
 
 const CSV_FILE = process.env.USERPROFILE
@@ -440,7 +456,7 @@ const CSV_HEADERS = [
   "Notes",
 ].join(",");
 
-function writeTradeCsv(logEntry) {
+async function writeTradeCsv(logEntry) {
   const now = new Date(logEntry.timestamp);
   const date = now.toISOString().slice(0, 10);
   const time = now.toISOString().slice(11, 19);
@@ -517,6 +533,14 @@ function writeTradeCsv(logEntry) {
 
   appendFileSync(CSV_FILE, row + "\n");
   console.log(`Tax record saved → ${CSV_FILE}`);
+
+  // Mirror to Google Sheets
+  await postToSheets({
+    date, time, exchange: "Kraken", symbol: logEntry.symbol,
+    side, quantity, price: logEntry.price.toFixed(2),
+    totalUSD, fee, netAmount, orderId, mode,
+    notes: notes.replace(/^"|"$/g, ""),
+  });
 }
 
 // Tax summary command: node bot.js --tax-summary
@@ -607,7 +631,7 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
       }
       delete positions[symbol];
       entries.push(closeEntry);
-      writeTradeCsv(closeEntry);
+      await writeTradeCsv(closeEntry);
       return entries;
     } else {
       const pnl = openPosition.side === "buy"
@@ -733,7 +757,7 @@ async function run() {
       for (const entry of entries) {
         if (entry.action !== "close") {
           log.trades.push(entry);
-          writeTradeCsv(entry);
+          await writeTradeCsv(entry);
         }
       }
     } catch (err) {
