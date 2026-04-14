@@ -463,7 +463,7 @@ async function writeTradeCsv(logEntry) {
     side = logEntry.side === "buy" ? "SELL" : "BUY";
     quantity = logEntry.quantity.toFixed(6);
     totalUSD = (logEntry.quantity * logEntry.price).toFixed(2);
-    fee = (parseFloat(totalUSD) * 0.001).toFixed(4);
+    fee = (parseFloat(totalUSD) * 0.0026).toFixed(4);
     const pnl = logEntry.side === "buy"
       ? ((logEntry.price - logEntry.entryPrice) * logEntry.quantity).toFixed(4)
       : ((logEntry.entryPrice - logEntry.price) * logEntry.quantity).toFixed(4);
@@ -483,7 +483,7 @@ async function writeTradeCsv(logEntry) {
     side = logEntry.tradeSide === "sell" ? "SELL" : "BUY";
     quantity = (logEntry.tradeSize / logEntry.price).toFixed(6);
     totalUSD = logEntry.tradeSize.toFixed(2);
-    fee = (logEntry.tradeSize * 0.001).toFixed(4);
+    fee = (logEntry.tradeSize * 0.0026).toFixed(4);
     netAmount = (logEntry.tradeSize - parseFloat(fee)).toFixed(2);
     orderId = logEntry.orderId || "";
     mode = "PAPER";
@@ -492,7 +492,7 @@ async function writeTradeCsv(logEntry) {
     side = logEntry.tradeSide === "sell" ? "SELL" : "BUY";
     quantity = (logEntry.tradeSize / logEntry.price).toFixed(6);
     totalUSD = logEntry.tradeSize.toFixed(2);
-    fee = (logEntry.tradeSize * 0.001).toFixed(4);
+    fee = (logEntry.tradeSize * 0.0026).toFixed(4);
     netAmount = (logEntry.tradeSize - parseFloat(fee)).toFixed(2);
     orderId = logEntry.orderId || "";
     mode = "LIVE";
