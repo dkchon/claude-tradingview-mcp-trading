@@ -305,20 +305,8 @@ function checkTradeLimits(log) {
     `✅ Trades today: ${todayCount}/${CONFIG.maxTradesPerDay} — within limit`,
   );
 
-  const tradeSize = Math.min(
-    CONFIG.portfolioValue * 0.01,
-    CONFIG.maxTradeSizeUSD,
-  );
-
-  if (tradeSize > CONFIG.maxTradeSizeUSD) {
-    console.log(
-      `🚫 Trade size $${tradeSize.toFixed(2)} exceeds max $${CONFIG.maxTradeSizeUSD}`,
-    );
-    return false;
-  }
-
   console.log(
-    `✅ Trade size: $${tradeSize.toFixed(2)} — within max $${CONFIG.maxTradeSizeUSD}`,
+    `✅ Trade size: $${CONFIG.maxTradeSizeUSD.toFixed(2)} per trade`,
   );
 
   return true;
@@ -730,7 +718,7 @@ async function run() {
     return;
   }
 
-  const tradeSize = Math.min(CONFIG.portfolioValue * 0.01, CONFIG.maxTradeSizeUSD);
+  const tradeSize = CONFIG.maxTradeSizeUSD;
 
   // Load open positions
   const positions = loadPositions();
