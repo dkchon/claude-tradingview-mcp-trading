@@ -604,8 +604,10 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         paperTrading: CONFIG.paperTrading,
         orderId: null,
       };
-      if (CONFIG.paperTrading) {
+      const isPaperPosition = openPosition.paper === true;
+      if (CONFIG.paperTrading || isPaperPosition) {
         closeEntry.orderId = `PAPER-CLOSE-${Date.now()}`;
+        closeEntry.paperTrading = true;
         console.log(`📋 PAPER SELL — ${openPosition.quantity.toFixed(6)} ${symbol} @ $${price.toFixed(p)}`);
       } else {
         try {
@@ -685,6 +687,7 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         quantity,
         entryTime: logEntry.timestamp,
         orderId: logEntry.orderId,
+        paper: CONFIG.paperTrading,
       };
     }
   }
