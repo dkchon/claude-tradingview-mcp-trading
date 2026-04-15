@@ -17,8 +17,10 @@ import { execSync } from "child_process";
 // ─── Onboarding ───────────────────────────────────────────────────────────────
 
 function checkOnboarding() {
-  const required = ["BITGET_API_KEY", "BITGET_SECRET_KEY"];
-  const missing = required.filter((k) => !process.env[k]);
+  // Support both KRAKEN_API_KEY (preferred) and legacy BITGET_API_KEY names
+  const hasApiKey = process.env.KRAKEN_API_KEY || process.env.BITGET_API_KEY;
+  const hasSecretKey = process.env.KRAKEN_SECRET_KEY || process.env.BITGET_SECRET_KEY;
+  const missing = [...(!hasApiKey ? ["KRAKEN_API_KEY"] : []), ...(!hasSecretKey ? ["KRAKEN_SECRET_KEY"] : [])];
 
   if (!existsSync(".env")) {
     console.log(
@@ -77,13 +79,13 @@ const CONFIG = {
   paperTrading: process.env.PAPER_TRADING !== "false",
   tradeMode: process.env.TRADE_MODE || "spot",
   kraken: {
-    apiKey: process.env.BITGET_API_KEY,
-    privateKey: process.env.BITGET_SECRET_KEY,
+    apiKey: process.env.KRAKEN_API_KEY || process.env.BITGET_API_KEY,
+    privateKey: process.env.KRAKEN_SECRET_KEY || process.env.BITGET_SECRET_KEY,
     baseUrl: "https://api.kraken.com",
   },
 };
 
-const LOG_FILE = "safety-check-log.json";
+const LOG_FILE = process.env.LOG_FILE || "safety-check-log.json";
 
 // ─── Logging ────────────────────────────────────────────────────────────────
 
@@ -329,6 +331,20 @@ const KRAKEN_SYMBOL_MAP = {
   "GRASSUSDT": "GRASSUSD",
 };
 
+// Kraken symbol → Kraken asset code (for balance lookups)
+const KRAKEN_ASSET_MAP = {
+  "BTCUSDT":  "XXBT",
+  "ETHUSDT":  "XETH",
+  "XRPUSDT":  "XXRP",
+  "LINKUSDT": "LINK",
+  "HBARUSDT": "HBAR",
+  "TAOUSDT":  "TAO",
+  "CCUSDT":   "CC",
+  "FLRUSDT":  "FLR",
+  "EWTUSDT":  "EWT",
+  "SGBUSDT":  "SGB",
+};
+
 function signKraken(path, nonce, postData) {
   const secret = Buffer.from(CONFIG.kraken.privateKey, "base64");
   const message = path + crypto.createHash("sha256").update(nonce + postData).digest("binary");
@@ -371,9 +387,22 @@ async function placeKrakenOrder(symbol, side, sizeUSD, price) {
 
 // ─── Position Tracking ───────────────────────────────────────────────────────
 
-const POSITIONS_FILE = "positions.json";
+const POSITIONS_FILE = process.env.POSITIONS_FILE || "positions.json";
 
-function loadPositions() {
+async function loadPositions() {
+  const url = process.env.GOOGLE_SHEETS_WEBHOOK;
+  if (url) {
+    try {
+      const res = await fetch(url + "?action=positions", { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.positions && Object.keys(data.positions).length > 0) {
+          console.log(`  📋 Positions loaded from Google Sheets (${Object.keys(data.positions).length} open)`);
+          return data.positions;
+        }
+      }
+    } catch { /* fall through to local file */ }
+  }
   if (!existsSync(POSITIONS_FILE)) return {};
   return JSON.parse(readFileSync(POSITIONS_FILE, "utf8"));
 }
@@ -400,16 +429,61 @@ function checkExitConditions(position, price, rsi3) {
 
 async function postToSheets(row) {
   const url = process.env.GOOGLE_SHEETS_WEBHOOK;
-  if (!url) return;
+  if (!url) {
+    console.log(`  ⚠️  Google Sheets: GOOGLE_SHEETS_WEBHOOK not set — skipping`);
+    return;
+  }
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(row),
     });
+    const text = await res.text();
+    if (!res.ok || !text.includes("success")) {
+      console.log(`  ⚠️  Google Sheets post may have failed: HTTP ${res.status} — ${text.substring(0, 100)}`);
+    } else {
+      console.log(`  ✅ Google Sheets updated`);
+    }
   } catch (err) {
     console.log(`  ⚠️  Google Sheets post failed: ${err.message}`);
   }
+}
+
+async function updateBalanceInSheets(symbol, price) {
+  const url = process.env.GOOGLE_SHEETS_WEBHOOK;
+  if (!url) return;
+  const asset = KRAKEN_ASSET_MAP[symbol];
+  if (!asset) return;
+  try {
+    const nonce = Date.now().toString();
+    const path = "/0/private/Balance";
+    const postData = new URLSearchParams({ nonce }).toString();
+    const secret = Buffer.from(CONFIG.kraken.privateKey, "base64");
+    const message = path + crypto.createHash("sha256").update(nonce + postData).digest("binary");
+    const sig = crypto.createHmac("sha512", secret).update(message, "binary").digest("base64");
+    const res = await fetch(`${CONFIG.kraken.baseUrl}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "API-Key": CONFIG.kraken.apiKey, "API-Sign": sig },
+      body: postData,
+    });
+    const data = await res.json();
+    const qty = parseFloat(data.result?.[asset] || "0");
+    const totalUSD = (qty * price).toFixed(2);
+    const now = new Date();
+    await postToSheets({
+      date: now.toISOString().slice(0, 10),
+      time: now.toISOString().slice(11, 19),
+      exchange: "Kraken", symbol,
+      side: "BALANCE",
+      quantity: qty.toFixed(6),
+      price: price.toFixed(4),
+      totalUSD, fee: "0", netAmount: totalUSD,
+      orderId: "AUTO-UPDATE",
+      mode: "BALANCE-SYNC",
+      notes: `Auto-updated after trade`,
+    });
+  } catch { /* skip balance update on error */ }
 }
 
 // ─── Tax CSV Logging ─────────────────────────────────────────────────────────
@@ -622,6 +696,8 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         }
       }
       delete positions[symbol];
+      await postToSheets({ mode: "POSITION-CLOSE", symbol });
+      await updateBalanceInSheets(symbol, price);
       entries.push(closeEntry);
       await writeTradeCsv(closeEntry);
       return entries;
@@ -691,6 +767,18 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         orderId: logEntry.orderId,
         paper: CONFIG.paperTrading,
       };
+      await postToSheets({
+        mode: "POSITION-OPEN",
+        symbol,
+        side: tradeSide,
+        entryPrice: price,
+        quantity,
+        entryTime: logEntry.timestamp,
+        orderId: logEntry.orderId,
+        paper: CONFIG.paperTrading,
+        notes: "",
+      });
+      await updateBalanceInSheets(symbol, price);
     }
   }
 
@@ -726,7 +814,7 @@ async function run() {
   const tradeSize = CONFIG.maxTradeSizeUSD;
 
   // Load open positions
-  const positions = loadPositions();
+  const positions = await loadPositions();
   const openCount = Object.keys(positions).length;
   if (openCount > 0) {
     console.log(`\n── Open Positions: ${openCount} ─────────────────────────────────`);
@@ -748,8 +836,8 @@ async function run() {
     try {
       const entries = await runSymbol(symbol, timeframe, rules, log, tradeSize, positions);
       for (const entry of entries) {
+        log.trades.push(entry);
         if (entry.action !== "close") {
-          log.trades.push(entry);
           await writeTradeCsv(entry);
         }
       }

@@ -1,0 +1,285 @@
+/**
+ * Morning Brief — TradingView Bot
+ * Run: node morning_brief.js
+ * Outputs: MCP health, open positions + P&L, last 24h trades, overnight Railway summary
+ */
+
+import "dotenv/config";
+import { readFileSync, existsSync } from "fs";
+import crypto from "crypto";
+
+const POSITIONS_FILE = process.env.POSITIONS_FILE || "positions.json";
+const CSV_FILE = process.env.USERPROFILE
+  ? `${process.env.USERPROFILE}\\Documents\\trades.csv`.replace(/\\/g, "/")
+  : "trades.csv";
+const SHEETS_WEBHOOK = process.env.GOOGLE_SHEETS_WEBHOOK;
+
+const KRAKEN_SYMBOL_MAP = {
+  "BTCUSDT":  "XBTUSD",
+  "ETHUSDT":  "ETHUSD",
+  "XRPUSDT":  "XRPUSD",
+  "LINKUSDT": "LINKUSD",
+  "HBARUSDT": "HBARUSD",
+  "XLMUSDT":  "XLMUSD",
+  "TAOUSDT":  "TAOUSD",
+  "FLRUSDT":  "FLRUSD",
+  "SHIBUSDT": "SHIBUSD",
+  "CCUSDT":   "CCUSD",
+  "GRASSUSDT":"GRASSUSD",
+  "EWTUSDT":  "EWTUSD",
+  "SGBUSDT":  "SGBUSD",
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function loadPositions() {
+  if (SHEETS_WEBHOOK) {
+    try {
+      const res = await fetch(SHEETS_WEBHOOK + "?action=positions", { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.positions && Object.keys(data.positions).length > 0) return data.positions;
+      }
+    } catch { /* fall through */ }
+  }
+  if (!existsSync(POSITIONS_FILE)) return {};
+  return JSON.parse(readFileSync(POSITIONS_FILE, "utf8"));
+}
+
+function loadRecentTrades(hours = 24) {
+  if (!existsSync(CSV_FILE)) return { live: [], paper: [], blocked: [] };
+  const lines = readFileSync(CSV_FILE, "utf8").trim().split("\n").slice(2);
+  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+
+  const live = [], paper = [], blocked = [];
+  for (const line of lines) {
+    const cols = line.split(",");
+    const [date, time, , symbol, side, qty, price, total, , , orderId, mode, notes] = cols;
+    if (!date || !time) continue;
+    const ts = new Date(`${date}T${time}Z`).getTime();
+    if (isNaN(ts) || ts < cutoff) continue;
+    const row = { date, time, symbol, side, qty, price, total, orderId, mode, notes };
+    if (mode === "LIVE") live.push(row);
+    else if (mode === "PAPER") paper.push(row);
+    else if (mode === "BLOCKED") blocked.push(row);
+  }
+  return { live, paper, blocked };
+}
+
+async function fetchSheetsRecent() {
+  if (!SHEETS_WEBHOOK) return null;
+  try {
+    const url = SHEETS_WEBHOOK + "?action=recent&hours=24";
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function checkMCP() {
+  try {
+    const res = await fetch("http://localhost:9222/json/version", {
+      signal: AbortSignal.timeout(3000),
+    });
+    const data = await res.json();
+    return { connected: true, browser: data.Browser };
+  } catch {
+    return { connected: false };
+  }
+}
+
+async function fetchPrices(symbols) {
+  const prices = {};
+  await Promise.all(symbols.map(async (symbol) => {
+    const pair = KRAKEN_SYMBOL_MAP[symbol];
+    if (!pair) return;
+    try {
+      const res = await fetch(`https://api.kraken.com/0/public/Ticker?pair=${pair}`,
+        { signal: AbortSignal.timeout(5000) });
+      const data = await res.json();
+      const key = Object.keys(data.result)[0];
+      prices[symbol] = parseFloat(data.result[key].c[0]);
+    } catch { /* skip */ }
+  }));
+  return prices;
+}
+
+function pnlLine(symbol, pos, currentPrice) {
+  if (!currentPrice) return `  • ${symbol}  entry: $${pos.entryPrice}  (price unavailable)`;
+
+  const pnl = pos.side === "buy"
+    ? (currentPrice - pos.entryPrice) * pos.quantity
+    : (pos.entryPrice - currentPrice) * pos.quantity;
+  const pnlPct = pos.side === "buy"
+    ? ((currentPrice - pos.entryPrice) / pos.entryPrice) * 100
+    : ((pos.entryPrice - currentPrice) / pos.entryPrice) * 100;
+
+  const arrow = pnl >= 0 ? "▲" : "▼";
+  const sign  = pnl >= 0 ? "+" : "";
+  const label = pnl >= 0 ? "PROFIT" : "LOSS";
+
+  return `  ${arrow} ${symbol.replace("USDT","")}  qty: ${pos.quantity}  entry: $${pos.entryPrice}  now: $${currentPrice.toFixed(4)}  ${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(2)}%)  [${label}]`;
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+const LINE = "─".repeat(55);
+
+console.log(`\n${"═".repeat(55)}`);
+console.log(`  📊 TRADINGVIEW BOT — MORNING BRIEF`);
+console.log(`  ${new Date().toUTCString()}`);
+console.log(`${"═".repeat(55)}\n`);
+
+const positions = await loadPositions();
+const posEntries = Object.entries(positions);
+const posSymbols = posEntries.map(([sym]) => sym);
+
+// Run all checks in parallel
+const [mcp, sheetsData, prices] = await Promise.all([
+  checkMCP(),
+  fetchSheetsRecent(),
+  fetchPrices(posSymbols),
+]);
+const { live, paper, blocked } = loadRecentTrades(24);
+
+// ─── MCP Status ───────────────────────────────────────────────────────────────
+console.log(`${LINE}`);
+console.log(`  MCP / TRADINGVIEW`);
+console.log(`${LINE}`);
+console.log(mcp.connected
+  ? `  ✅ CDP connected  (${mcp.browser})`
+  : `  ❌ TradingView not running with CDP — run tv_launch`);
+
+// ─── Open Positions + P&L ────────────────────────────────────────────────────
+console.log(`\n${LINE}`);
+console.log(`  OPEN POSITIONS & P&L`);
+console.log(`${LINE}`);
+if (posEntries.length === 0) {
+  console.log(`  None`);
+} else {
+  let totalPnl = 0;
+  for (const [symbol, pos] of posEntries) {
+    const currentPrice = prices[symbol];
+    console.log(pnlLine(symbol, pos, currentPrice));
+    if (currentPrice) {
+      const pnl = pos.side === "buy"
+        ? (currentPrice - pos.entryPrice) * pos.quantity
+        : (pos.entryPrice - currentPrice) * pos.quantity;
+      totalPnl += pnl;
+    }
+  }
+  const totalSign = totalPnl >= 0 ? "+" : "";
+  console.log(`\n  Total unrealised P&L: ${totalSign}$${totalPnl.toFixed(2)}`);
+}
+
+// ─── Last 24h Trades ──────────────────────────────────────────────────────────
+console.log(`\n${LINE}`);
+console.log(`  LAST 24H — LOCAL RUNS`);
+console.log(`${LINE}`);
+if (live.length === 0 && paper.length === 0) {
+  console.log(`  No trades executed locally in last 24h`);
+  console.log(`  Blocked signals: ${blocked.length}`);
+  if (blocked.length > 0) {
+    const reasons = {};
+    for (const b of blocked) {
+      const reason = b.notes?.replace(/^"|"$/g, "").replace("Failed: ", "") || "unknown";
+      reasons[reason] = (reasons[reason] || 0) + 1;
+    }
+    for (const [reason, count] of Object.entries(reasons)) {
+      console.log(`    • ${reason} (×${count})`);
+    }
+  }
+} else {
+  if (live.length > 0) {
+    console.log(`  🔴 LIVE trades: ${live.length}`);
+    for (const t of live) {
+      console.log(`    ${t.time}  ${t.symbol}  ${t.side?.toUpperCase()}  $${t.total}  [${t.orderId}]`);
+    }
+  }
+  if (paper.length > 0) {
+    console.log(`  📋 Paper trades: ${paper.length}`);
+    for (const t of paper) {
+      console.log(`    ${t.time}  ${t.symbol}  ${t.side?.toUpperCase()}  $${t.total}`);
+    }
+  }
+}
+
+// ─── Post P&L Snapshot to Google Sheets ──────────────────────────────────────
+console.log(`\n${LINE}`);
+console.log(`  P&L SNAPSHOT → GOOGLE SHEETS`);
+console.log(`${LINE}`);
+if (!SHEETS_WEBHOOK) {
+  console.log(`  ⚠️  GOOGLE_SHEETS_WEBHOOK not set — skipping`);
+} else if (posEntries.length === 0) {
+  console.log(`  No open positions to snapshot`);
+} else {
+  const snapDate = new Date().toISOString().slice(0, 10);
+  const snapTime = new Date().toISOString().slice(11, 19);
+  let snapOk = 0;
+  for (const [symbol, pos] of posEntries) {
+    const currentPrice = prices[symbol];
+    if (!currentPrice) { console.log(`  ⚠️  No price for ${symbol} — skipping`); continue; }
+    const pnl = pos.side === "buy"
+      ? (currentPrice - pos.entryPrice) * pos.quantity
+      : (pos.entryPrice - currentPrice) * pos.quantity;
+    const pnlPct = pos.side === "buy"
+      ? ((currentPrice - pos.entryPrice) / pos.entryPrice) * 100
+      : ((pos.entryPrice - currentPrice) / pos.entryPrice) * 100;
+    const currentValue = (currentPrice * pos.quantity).toFixed(2);
+    const sign = pnl >= 0 ? "+" : "";
+    try {
+      const res = await fetch(SHEETS_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: snapDate, time: snapTime,
+          exchange: "Kraken", symbol,
+          side: "P&L-SNAPSHOT",
+          quantity: pos.quantity.toFixed(6),
+          price: currentPrice.toFixed(4),
+          totalUSD: currentValue,
+          fee: "0",
+          netAmount: currentValue,
+          orderId: "P&L-SNAPSHOT",
+          mode: "P&L-SNAPSHOT",
+          notes: `Entry: $${pos.entryPrice} | P&L: ${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(2)}%)`,
+        }),
+      });
+      const text = await res.text();
+      const ok = text.includes("success");
+      console.log(`  ${ok ? "✅" : "❌"} ${symbol.replace("USDT","")}  ${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(2)}%)`);
+      if (ok) snapOk++;
+    } catch (err) {
+      console.log(`  ❌ ${symbol}: ${err.message}`);
+    }
+  }
+  console.log(`  ${snapOk}/${posEntries.length} snapshots posted`);
+}
+
+// ─── Railway / Google Sheets Overnight ───────────────────────────────────────
+console.log(`\n${LINE}`);
+console.log(`  OVERNIGHT — RAILWAY (via Google Sheets)`);
+console.log(`${LINE}`);
+if (sheetsData && Array.isArray(sheetsData.trades)) {
+  const overnightLive = sheetsData.trades.filter(t => t.mode === "LIVE");
+  const overnightPaper = sheetsData.trades.filter(t => t.mode === "PAPER");
+  if (overnightLive.length === 0 && overnightPaper.length === 0) {
+    console.log(`  No trades overnight`);
+  } else {
+    if (overnightLive.length > 0) {
+      console.log(`  🔴 LIVE: ${overnightLive.length} trade(s)`);
+      for (const t of overnightLive) {
+        console.log(`    ${t.time}  ${t.symbol}  ${t.side?.toUpperCase()}  $${t.totalUSD}`);
+      }
+    }
+    if (overnightPaper.length > 0) {
+      console.log(`  📋 Paper: ${overnightPaper.length} trade(s)`);
+    }
+  }
+} else {
+  console.log(`  ⚠️  Google Sheets read not available`);
+}
+
+console.log(`\n${"═".repeat(55)}\n`);
