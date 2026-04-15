@@ -522,13 +522,15 @@ async function writeTradeCsv(logEntry) {
   appendFileSync(CSV_FILE, row + "\n");
   console.log(`Tax record saved → ${CSV_FILE}`);
 
-  // Mirror to Google Sheets
-  await postToSheets({
-    date, time, exchange: "Kraken", symbol: logEntry.symbol,
-    side, quantity, price: logEntry.price.toFixed(2),
-    totalUSD, fee, netAmount, orderId, mode,
-    notes: notes.replace(/^"|"$/g, ""),
-  });
+  // Mirror to Google Sheets — only actual trades (not blocked checks)
+  if (mode === "LIVE" || mode === "PAPER") {
+    await postToSheets({
+      date, time, exchange: "Kraken", symbol: logEntry.symbol,
+      side, quantity, price: logEntry.price.toFixed(2),
+      totalUSD, fee, netAmount, orderId, mode,
+      notes: notes.replace(/^"|"$/g, ""),
+    });
+  }
 }
 
 // Tax summary command: node bot.js --tax-summary
