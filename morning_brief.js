@@ -13,6 +13,21 @@ const CSV_FILE = process.env.USERPROFILE
   ? `${process.env.USERPROFILE}\\Documents\\trades.csv`.replace(/\\/g, "/")
   : "trades.csv";
 const SHEETS_WEBHOOK = process.env.GOOGLE_SHEETS_WEBHOOK;
+const KRAKEN_API_KEY = process.env.KRAKEN_API_KEY || process.env.BITGET_API_KEY;
+const KRAKEN_SECRET  = process.env.KRAKEN_SECRET_KEY || process.env.BITGET_SECRET_KEY;
+
+const KRAKEN_ASSET_MAP = {
+  "XXBT": { symbol: "BTCUSDT",  pair: "XBTUSD",  name: "BTC"  },
+  "XETH": { symbol: "ETHUSDT",  pair: "ETHUSD",   name: "ETH"  },
+  "XXRP": { symbol: "XRPUSDT",  pair: "XRPUSD",   name: "XRP"  },
+  "LINK": { symbol: "LINKUSDT", pair: "LINKUSD",  name: "LINK" },
+  "HBAR": { symbol: "HBARUSDT", pair: "HBARUSD",  name: "HBAR" },
+  "TAO":  { symbol: "TAOUSDT",  pair: "TAOUSD",   name: "TAO"  },
+  "CC":   { symbol: "CCUSDT",   pair: "CCUSD",    name: "CC"   },
+  "FLR":  { symbol: "FLRUSDT",  pair: "FLRUSD",   name: "FLR"  },
+  "EWT":  { symbol: "EWTUSDT",  pair: "EWTUSD",   name: "EWT"  },
+  "SGB":  { symbol: "SGBUSDT",  pair: "SGBUSD",   name: "SGB"  },
+};
 
 const KRAKEN_SYMBOL_MAP = {
   "BTCUSDT":  "XBTUSD",
@@ -123,6 +138,62 @@ function pnlLine(symbol, pos, currentPrice) {
   return `  ${arrow} ${symbol.replace("USDT","")}  qty: ${pos.quantity}  entry: $${pos.entryPrice}  now: $${currentPrice.toFixed(4)}  ${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(2)}%)  [${label}]`;
 }
 
+async function syncBalances() {
+  if (!SHEETS_WEBHOOK || !KRAKEN_API_KEY || !KRAKEN_SECRET) return { ok: 0, total: 0 };
+  try {
+    const path = "/0/private/Balance";
+    const nonce = Date.now().toString();
+    const postData = new URLSearchParams({ nonce }).toString();
+    const secret = Buffer.from(KRAKEN_SECRET, "base64");
+    const message = path + crypto.createHash("sha256").update(nonce + postData).digest("binary");
+    const sig = crypto.createHmac("sha512", secret).update(message, "binary").digest("base64");
+    const res = await fetch("https://api.kraken.com" + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "API-Key": KRAKEN_API_KEY, "API-Sign": sig },
+      body: postData,
+    });
+    const data = await res.json();
+    if (data.error?.length > 0) return { ok: 0, total: 0 };
+
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const time = now.toISOString().slice(11, 19);
+    let ok = 0, total = 0;
+
+    for (const [asset, qty] of Object.entries(data.result)) {
+      const amount = parseFloat(qty);
+      if (amount <= 0 || asset === "ZUSD" || asset === "KFEE") continue;
+      const info = KRAKEN_ASSET_MAP[asset];
+      if (!info) continue;
+      total++;
+      try {
+        const tickRes = await fetch(`https://api.kraken.com/0/public/Ticker?pair=${info.pair}`,
+          { signal: AbortSignal.timeout(4000) });
+        const tickData = await tickRes.json();
+        const tickKey = Object.keys(tickData.result)[0];
+        const price = parseFloat(tickData.result[tickKey].c[0]);
+        const totalUSD = (amount * price).toFixed(2);
+        const postRes = await fetch(SHEETS_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date, time, exchange: "Kraken", symbol: info.symbol,
+            side: "BALANCE", quantity: amount.toFixed(6),
+            price: price.toFixed(4), totalUSD, fee: "0", netAmount: totalUSD,
+            orderId: "BALANCE-SYNC", mode: "BALANCE-SYNC",
+            notes: `${amount.toFixed(6)} ${info.name} @ $${price.toFixed(4)}`,
+          }),
+        });
+        const text = await postRes.text();
+        if (text.includes("success")) ok++;
+      } catch { /* skip individual asset */ }
+    }
+    return { ok, total };
+  } catch {
+    return { ok: 0, total: 0 };
+  }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const LINE = "─".repeat(55);
@@ -137,10 +208,11 @@ const posEntries = Object.entries(positions);
 const posSymbols = posEntries.map(([sym]) => sym);
 
 // Run all checks in parallel
-const [mcp, sheetsData, prices] = await Promise.all([
+const [mcp, sheetsData, prices, balanceSync] = await Promise.all([
   checkMCP(),
   fetchSheetsRecent(),
   fetchPrices(posSymbols),
+  syncBalances(),
 ]);
 const { live, paper, blocked } = loadRecentTrades(24);
 
@@ -280,6 +352,18 @@ if (sheetsData && Array.isArray(sheetsData.trades)) {
   }
 } else {
   console.log(`  ⚠️  Google Sheets read not available`);
+}
+
+// ─── Balance Sync ─────────────────────────────────────────────────────────────
+console.log(`\n${LINE}`);
+console.log(`  BALANCES → GOOGLE SHEETS`);
+console.log(`${LINE}`);
+if (!SHEETS_WEBHOOK) {
+  console.log(`  ⚠️  GOOGLE_SHEETS_WEBHOOK not set — skipping`);
+} else if (balanceSync.total === 0) {
+  console.log(`  ⚠️  Could not fetch balances from Kraken`);
+} else {
+  console.log(`  ✅ ${balanceSync.ok}/${balanceSync.total} balances updated`);
 }
 
 console.log(`\n${"═".repeat(55)}\n`);
