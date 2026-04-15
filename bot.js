@@ -415,11 +415,11 @@ function checkExitConditions(position, price, rsi3) {
   const { side, entryPrice } = position;
   if (side === "buy") {
     const stopLoss = entryPrice * 0.97;
-    if (rsi3 > 70) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} above 70` };
+    if (rsi3 > 80) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} above 80` };
     if (price < stopLoss) return { exit: true, reason: `Stop loss — price $${price.toFixed(4)} below entry -3% ($${stopLoss.toFixed(4)})` };
   } else {
     const stopLoss = entryPrice * 1.03;
-    if (rsi3 < 30) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} below 30` };
+    if (rsi3 < 20) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} below 20` };
     if (price > stopLoss) return { exit: true, reason: `Stop loss — price $${price.toFixed(4)} above entry +3% ($${stopLoss.toFixed(4)})` };
   }
   return { exit: false };
