@@ -674,6 +674,13 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
   // ── Check open position first ──────────────────────────────────────────────
   const openPosition = positions[symbol];
   if (openPosition) {
+    // Skip bot management for manually-entered positions — P&L tracking only
+    if (BOT_EXCLUDED_ORDERS.includes(openPosition.orderId)) {
+      const pnl = ((price - openPosition.entryPrice) / openPosition.entryPrice * 100).toFixed(2);
+      console.log(`\n── Manual Position — ${openPosition.side.toUpperCase()} @ $${openPosition.entryPrice.toFixed(p)} — tracking only, not managed by bot ──`);
+      console.log(`  Unrealised P&L: ${pnl >= 0 ? "+" : ""}${pnl}%`);
+      return [];
+    }
     const { exit, reason } = checkExitConditions(openPosition, price, rsi3);
     console.log(`\n── Open Position — ${openPosition.side.toUpperCase()} @ $${openPosition.entryPrice.toFixed(p)} ──`);
     if (exit) {
