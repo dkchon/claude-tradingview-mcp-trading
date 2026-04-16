@@ -122,6 +122,10 @@ async function fetchCandles(symbol, interval, limit = 100) {
     "SHIBUSDT": "SHIBUSD",
     "CCUSDT": "CCUSD",
     "GRASSUSDT": "GRASSUSD",
+    "SOLUSDT":   "SOLUSD",
+    "HYPEUSDT":  "HYPEUSD",
+    "SOLUSDT":   "SOLUSD",
+    "HYPEUSDT":  "HYPEUSD",
   };
   const krakenSymbol = symbolMap[symbol] || symbol;
 
