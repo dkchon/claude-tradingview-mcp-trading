@@ -138,8 +138,22 @@ function pnlLine(symbol, pos, currentPrice) {
   return `  ${arrow} ${symbol.replace("USDT","")}  qty: ${pos.quantity}  entry: $${pos.entryPrice}  now: $${currentPrice.toFixed(4)}  ${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(2)}%)  [${label}]`;
 }
 
-async function syncBalances() {
-  if (!SHEETS_WEBHOOK || !KRAKEN_API_KEY || !KRAKEN_SECRET) return { ok: 0, total: 0 };
+// Map position symbol → Kraken asset code
+const SYMBOL_TO_KRAKEN = {
+  "BTCUSDT":  "XXBT",
+  "ETHUSDT":  "XETH",
+  "XRPUSDT":  "XXRP",
+  "LINKUSDT": "LINK",
+  "HBARUSDT": "HBAR",
+  "TAOUSDT":  "TAO",
+  "CCUSDT":   "CC",
+  "FLRUSDT":  "FLR",
+  "EWTUSDT":  "EWT",
+  "SGBUSDT":  "SGB",
+};
+
+async function fetchKrakenBalances() {
+  if (!KRAKEN_API_KEY || !KRAKEN_SECRET) return null;
   try {
     const path = "/0/private/Balance";
     const nonce = Date.now().toString();
@@ -151,16 +165,54 @@ async function syncBalances() {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "API-Key": KRAKEN_API_KEY, "API-Sign": sig },
       body: postData,
+      signal: AbortSignal.timeout(8000),
     });
     const data = await res.json();
-    if (data.error?.length > 0) return { ok: 0, total: 0 };
+    if (data.error?.length > 0) return null;
+    // Return as { assetCode: qty }
+    const balances = {};
+    for (const [asset, qty] of Object.entries(data.result)) {
+      balances[asset] = parseFloat(qty);
+    }
+    return balances;
+  } catch {
+    return null;
+  }
+}
 
+async function reconcilePositions(positions, krakenBalances) {
+  if (!krakenBalances) return null;
+  const mismatches = [];
+  const matches = [];
+
+  for (const [symbol, pos] of Object.entries(positions)) {
+    const krakenAsset = SYMBOL_TO_KRAKEN[symbol];
+    if (!krakenAsset) continue;
+    const krakenQty = krakenBalances[krakenAsset] || 0;
+    const posQty = pos.quantity;
+    const diff = Math.abs(krakenQty - posQty);
+    const pct = posQty > 0 ? (diff / posQty) * 100 : 0;
+
+    // Flag if difference > 1% or > small absolute threshold
+    if (pct > 1 || (diff > 0.00001 && pct > 0.1)) {
+      mismatches.push({ symbol, posQty, krakenQty, diff, pct });
+    } else {
+      matches.push(symbol);
+    }
+  }
+  return { mismatches, matches };
+}
+
+async function syncBalances(krakenBalances) {
+  if (!SHEETS_WEBHOOK || !KRAKEN_API_KEY || !KRAKEN_SECRET) return { ok: 0, total: 0 };
+  if (!krakenBalances) return { ok: 0, total: 0 };
+  try {
     const now = new Date();
     const date = now.toISOString().slice(0, 10);
     const time = now.toISOString().slice(11, 19);
     let ok = 0, total = 0;
 
-    for (const [asset, qty] of Object.entries(data.result)) {
+    for (const [asset, qty] of Object.entries(krakenBalances)) {
       const amount = parseFloat(qty);
       if (amount <= 0 || asset === "ZUSD" || asset === "KFEE") continue;
       const info = KRAKEN_ASSET_MAP[asset];
@@ -208,11 +260,15 @@ const posEntries = Object.entries(positions);
 const posSymbols = posEntries.map(([sym]) => sym);
 
 // Run all checks in parallel
-const [mcp, sheetsData, prices, balanceSync] = await Promise.all([
+const [mcp, sheetsData, prices, krakenBalances] = await Promise.all([
   checkMCP(),
   fetchSheetsRecent(),
   fetchPrices(posSymbols),
-  syncBalances(),
+  fetchKrakenBalances(),
+]);
+const [balanceSync, reconciliation] = await Promise.all([
+  syncBalances(krakenBalances),
+  reconcilePositions(positions, krakenBalances),
 ]);
 const { live, paper, blocked } = loadRecentTrades(24);
 
@@ -352,6 +408,23 @@ if (sheetsData && Array.isArray(sheetsData.trades)) {
   }
 } else {
   console.log(`  ⚠️  Google Sheets read not available`);
+}
+
+// ─── Reconciliation ───────────────────────────────────────────────────────────
+console.log(`\n${LINE}`);
+console.log(`  POSITION RECONCILIATION — KRAKEN vs TRACKED`);
+console.log(`${LINE}`);
+if (!reconciliation) {
+  console.log(`  ⚠️  Kraken API not available — skipping reconciliation`);
+} else if (reconciliation.mismatches.length === 0) {
+  console.log(`  ✅ All ${reconciliation.matches.length} positions match Kraken balances`);
+} else {
+  console.log(`  ✅ ${reconciliation.matches.length} positions match`);
+  console.log(`  ⚠️  ${reconciliation.mismatches.length} MISMATCH(ES) — manual review needed:\n`);
+  for (const m of reconciliation.mismatches) {
+    const sym = m.symbol.replace("USDT", "");
+    console.log(`  ❌ ${sym.padEnd(6)}  tracked: ${m.posQty.toFixed(6)}  kraken: ${m.krakenQty.toFixed(6)}  diff: ${m.diff.toFixed(6)} (${m.pct.toFixed(1)}%)`);
+  }
 }
 
 // ─── Balance Sync ─────────────────────────────────────────────────────────────
