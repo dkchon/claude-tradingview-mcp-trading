@@ -691,25 +691,13 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         orderId: null,
       };
       const isPaperPosition = openPosition.paper === true;
-      // Cap sell value at MAX_TRADE_SIZE_USD to protect large manually-entered positions
-      const fullPositionValue = openPosition.quantity * price;
-      const sellValue = Math.min(fullPositionValue, CONFIG.maxTradeSizeUSD);
-      const soldQty = sellValue / price;
-      const remainingQty = openPosition.quantity - soldQty;
-      const isPartialSell = remainingQty > 0.000001;
-      closeEntry.quantity = soldQty;
-
-      if (isPartialSell) {
-        console.log(`⚠️  PARTIAL SELL — position value $${fullPositionValue.toFixed(2)} exceeds cap $${CONFIG.maxTradeSizeUSD}. Selling $${sellValue.toFixed(2)} (${soldQty.toFixed(6)} tokens), ${remainingQty.toFixed(6)} remain.`);
-      }
-
       if (CONFIG.paperTrading || isPaperPosition) {
         closeEntry.orderId = `PAPER-CLOSE-${Date.now()}`;
         closeEntry.paperTrading = true;
-        console.log(`📋 PAPER SELL — ${soldQty.toFixed(6)} ${symbol} @ $${price.toFixed(p)}`);
+        console.log(`📋 PAPER SELL — ${openPosition.quantity.toFixed(6)} ${symbol} @ $${price.toFixed(p)}`);
       } else {
         try {
-          const order = await placeKrakenOrder(symbol, "sell", sellValue, price);
+          const order = await placeKrakenOrder(symbol, "sell", openPosition.quantity * price, price);
           closeEntry.orderId = order.orderId;
           console.log(`✅ SELL ORDER PLACED — ${order.orderId}`);
         } catch (err) {
@@ -717,17 +705,8 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
           closeEntry.error = err.message;
         }
       }
-
-      if (isPartialSell) {
-        positions[symbol] = { ...openPosition, quantity: remainingQty };
-        await postToSheets({ mode: "POSITION-OPEN", symbol, side: openPosition.side,
-          entryPrice: openPosition.entryPrice, quantity: remainingQty,
-          entryTime: openPosition.entryTime, orderId: openPosition.orderId,
-          paper: openPosition.paper, notes: openPosition.notes || "" });
-      } else {
-        delete positions[symbol];
-        await postToSheets({ mode: "POSITION-CLOSE", symbol });
-      }
+      delete positions[symbol];
+      await postToSheets({ mode: "POSITION-CLOSE", symbol });
       await updateBalanceInSheets(symbol, price);
       entries.push(closeEntry);
       await writeTradeCsv(closeEntry);
