@@ -76,6 +76,7 @@ const CONFIG = {
   portfolioValue: parseFloat(process.env.PORTFOLIO_VALUE_USD || "1000"),
   maxTradeSizeUSD: parseFloat(process.env.MAX_TRADE_SIZE_USD || "100"),
   maxTradesPerDay: parseInt(process.env.MAX_TRADES_PER_DAY || "3"),
+  maxPortfolioUSD: parseFloat(process.env.MAX_PORTFOLIO_USD || "500"),
   paperTrading: process.env.PAPER_TRADING !== "false",
   tradeMode: process.env.TRADE_MODE || "spot",
   kraken: {
@@ -290,6 +291,15 @@ function runSafetyCheck(price, ema8, vwap, rsi3, rules) {
 }
 
 // ─── Trade Limits ────────────────────────────────────────────────────────────
+
+// Only count positions the bot opened — not manual/airdrop entries
+const BOT_EXCLUDED_ORDERS = ["MANUAL-ENTRY", "KRAKEN-HISTORY", "AIRDROP"];
+
+function getBotDeployedCapital(positions) {
+  return Object.values(positions)
+    .filter(pos => !BOT_EXCLUDED_ORDERS.includes(pos.orderId))
+    .reduce((sum, pos) => sum + (pos.entryPrice * pos.quantity), 0);
+}
 
 function checkTradeLimits(log) {
   const todayCount = countTodaysTrades(log);
@@ -740,6 +750,13 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
     failed.forEach((f) => console.log(`   - ${f}`));
   } else {
     console.log(`✅ ALL CONDITIONS MET`);
+    const deployed = getBotDeployedCapital(positions);
+    if (deployed + tradeSize > CONFIG.maxPortfolioUSD) {
+      console.log(`🚫 PORTFOLIO CAP REACHED — $${deployed.toFixed(2)} deployed of $${CONFIG.maxPortfolioUSD} limit. No new trade.`);
+      logEntry.orderPlaced = false;
+      entries.push(logEntry);
+      return entries;
+    }
     const quantity = tradeSize / price;
     if (CONFIG.paperTrading) {
       console.log(`\n📋 PAPER ${tradeSide.toUpperCase()} — ${symbol} ~$${tradeSize.toFixed(2)} at market`);
