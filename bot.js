@@ -821,6 +821,9 @@ async function run() {
   console.log("  Claude Trading Bot");
   console.log(`  ${new Date().toISOString()}`);
   console.log(`  Mode: ${CONFIG.paperTrading ? "📋 PAPER TRADING" : "🔴 LIVE TRADING"}`);
+  console.log(`  Trade size: $${CONFIG.maxTradeSizeUSD}  [MAX_TRADE_SIZE_USD=${process.env.MAX_TRADE_SIZE_USD ?? "unset"}]`);
+  const _webhook = process.env.GOOGLE_SHEETS_WEBHOOK;
+  console.log(`  Sheets webhook: ${_webhook ? "SET (" + _webhook.slice(0, 50) + "...)" : "NOT SET — trades will NOT log to Sheets"}`);
   console.log("═══════════════════════════════════════════════════════════");
 
   // Load strategy and watchlist
