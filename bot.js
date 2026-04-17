@@ -431,17 +431,50 @@ function savePositions(positions) {
   writeFileSync(POSITIONS_FILE, JSON.stringify(positions, null, 2));
 }
 
-function checkExitConditions(position, price, rsi3) {
+function checkExitConditions(position, price, rsi3, candles) {
   const { side, entryPrice } = position;
+
   if (side === "buy") {
+    // ── Hard stop loss — always immediate, no filters ──────────────────────────
     const stopLoss = entryPrice * 0.97;
-    if (rsi3 > 80) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} above 80` };
-    if (price < stopLoss) return { exit: true, reason: `Stop loss — price $${price.toFixed(4)} below entry -3% ($${stopLoss.toFixed(4)})` };
+    if (price < stopLoss) {
+      return { exit: true, reason: `Stop loss — price $${price.toFixed(8)} below entry -3% ($${stopLoss.toFixed(8)})` };
+    }
+
+    // ── RSI overbought: raise threshold to 85, activate trailing stop ──────────
+    if (rsi3 > 85) {
+      // Update high water mark as price climbs
+      if (!position.highWaterMark || price > position.highWaterMark) {
+        position.highWaterMark = price;
+        console.log(`  📈 New high water mark: $${price.toFixed(8)}  RSI(3): ${rsi3.toFixed(2)}`);
+      }
+    }
+
+    // ── Trailing stop: 2% pullback from peak, confirmed by bearish candle ──────
+    if (position.highWaterMark) {
+      const trailingStop = position.highWaterMark * 0.98;
+      if (price < trailingStop) {
+        // Momentum filter: only exit if last candle closed bearish
+        const lastClose = candles[candles.length - 1]?.close;
+        const prevClose = candles[candles.length - 2]?.close;
+        const bearishCandle = lastClose && prevClose && lastClose < prevClose;
+        if (bearishCandle) {
+          return {
+            exit: true,
+            reason: `Trailing stop — price pulled back 2% from peak $${position.highWaterMark.toFixed(8)}, bearish candle confirmed (RSI ${rsi3.toFixed(1)})`,
+          };
+        }
+        console.log(`  ⏸  Trailing stop triggered but candle still bullish — holding (peak $${position.highWaterMark.toFixed(8)}, now $${price.toFixed(8)})`);
+      }
+    }
+
   } else {
+    // ── Short side (unchanged) ─────────────────────────────────────────────────
     const stopLoss = entryPrice * 1.03;
     if (rsi3 < 20) return { exit: true, reason: `Take profit — RSI(3) ${rsi3.toFixed(2)} below 20` };
-    if (price > stopLoss) return { exit: true, reason: `Stop loss — price $${price.toFixed(4)} above entry +3% ($${stopLoss.toFixed(4)})` };
+    if (price > stopLoss) return { exit: true, reason: `Stop loss — price $${price.toFixed(8)} above entry +3% ($${stopLoss.toFixed(8)})` };
   }
+
   return { exit: false };
 }
 
@@ -691,7 +724,7 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
       console.log(`  Unrealised P&L: ${pnl >= 0 ? "+" : ""}${pnl}%`);
       return [];
     }
-    const { exit, reason } = checkExitConditions(openPosition, price, rsi3);
+    const { exit, reason } = checkExitConditions(openPosition, price, rsi3, candles);
     console.log(`\n── Open Position — ${openPosition.side.toUpperCase()} @ $${openPosition.entryPrice.toFixed(p)} ──`);
     if (exit) {
       console.log(`\n💰 EXIT TRIGGERED — ${reason}`);
@@ -733,7 +766,8 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         ? ((price - openPosition.entryPrice) / openPosition.entryPrice * 100).toFixed(2)
         : ((openPosition.entryPrice - price) / openPosition.entryPrice * 100).toFixed(2);
       console.log(`  Holding — unrealised P&L: ${pnl >= 0 ? "+" : ""}${pnl}%`);
-      console.log(`  Exit when: ${openPosition.side === "buy" ? "RSI(3) > 70 or price < entry -3%" : "RSI(3) < 30 or price > entry +3%"}`);
+      const hwm = openPosition.highWaterMark ? ` | Peak: $${openPosition.highWaterMark.toFixed(8)} | Trailing stop: $${(openPosition.highWaterMark * 0.98).toFixed(8)}` : "";
+      console.log(`  Exit when: RSI(3) > 85 → 2% trailing stop + bearish candle | stop loss: entry -3%${hwm}`);
       return entries;
     }
   }
