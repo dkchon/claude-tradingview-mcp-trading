@@ -1,4 +1,20 @@
 {
+  "HBARUSDT": {
+    "side": "buy",
+    "entryPrice": 0.09235,
+    "quantity": 270.70925,
+    "entryTime": "2026-04-17T16:03:19.000Z",
+    "orderId": "RAILWAY-LIVE",
+    "paper": false
+  },
+  "SHIBUSDT": {
+    "side": "buy",
+    "entryPrice": 0.0000064200,
+    "quantity": 3900156.00624,
+    "entryTime": "2026-04-17T16:03:20.000Z",
+    "orderId": "RAILWAY-LIVE",
+    "paper": false
+  },
   "XRPUSDT": {
     "side": "buy",
     "entryPrice": 0.9337,
