@@ -1,1 +1,90 @@
-{}
+{
+  "TAOUSDT": {
+    "side": "buy",
+    "entryPrice": 247.8359,
+    "quantity": 0.10090,
+    "entryTime": "2026-04-15T05:02:00.000Z",
+    "orderId": "RAILWAY-LIVE",
+    "paper": false
+  },
+  "CCUSDT": {
+    "side": "buy",
+    "entryPrice": 0.15082,
+    "quantity": 331.47721,
+    "entryTime": "2026-04-15T12:02:00.000Z",
+    "orderId": "RAILWAY-LIVE",
+    "paper": false,
+    "notes": "2 tranches: 163.60185 @ $0.15279 (Apr 15) + 167.87536 @ $0.14890 (Apr 16)"
+  },
+  "XRPUSDT": {
+    "side": "buy",
+    "entryPrice": 0.9337,
+    "quantity": 125.02271066,
+    "entryTime": "2017-12-15T00:00:00.000Z",
+    "orderId": "MANUAL-ENTRY",
+    "paper": false,
+    "notes": "Weighted avg cost basis. Bot sold portions on 2026-04-15."
+  },
+  "LINKUSDT": {
+    "side": "buy",
+    "entryPrice": 9.299280,
+    "quantity": 2.688377,
+    "entryTime": "2026-01-01T00:00:00.000Z",
+    "orderId": "KRAKEN-HISTORY",
+    "paper": false,
+    "notes": "Original position. Apr 16 23:02 rebuy (2.628151 @ $9.518) was bought and sold by bot at 00:02 Apr 17 (+0.92%)."
+  },
+  "ETHUSDT": {
+    "side": "buy",
+    "entryPrice": 2362.10,
+    "quantity": 0.01057,
+    "entryTime": "2026-04-15T22:01:00.000Z",
+    "orderId": "KRAKEN-HISTORY",
+    "paper": false,
+    "notes": "Remaining Apr 15 tranche. Apr 16 23:02 rebuy (0.010667 @ $2343.57) was bought and sold by bot at 00:02 Apr 17 (+0.31%)."
+  },
+  "BTCUSDT": {
+    "side": "buy",
+    "entryPrice": 74938.00,
+    "quantity": 0.00066652,
+    "entryTime": "2026-04-15T22:01:00.000Z",
+    "orderId": "KRAKEN-HISTORY",
+    "paper": false,
+    "notes": "Merged: 0.00033352 @ $74789.51 (remaining Apr 15) + 0.000333 @ $75116.30 (Apr 16 accidental rebuy). Weighted avg."
+  },
+  "HBARUSDT": {
+    "side": "buy",
+    "entryPrice": 0.0869,
+    "quantity": 287.65389,
+    "entryTime": "2026-04-16T02:02:46.000Z",
+    "orderId": "RAILWAY-LIVE",
+    "paper": false
+  },
+  "EWTUSDT": {
+    "side": "buy",
+    "entryPrice": 4.009,
+    "quantity": 24.12345,
+    "entryTime": "2022-09-17T00:00:00.000Z",
+    "orderId": "AIRDROP",
+    "paper": false,
+    "notes": "XRP airdrop — EWT price Sep 17, 2022"
+  },
+  "SGBUSDT": {
+    "side": "buy",
+    "entryPrice": 1.41035,
+    "quantity": 14.23865949,
+    "entryTime": "2022-02-18T00:00:00.000Z",
+    "orderId": "AIRDROP",
+    "paper": false,
+    "notes": "XRP airdrop — SGB price Feb 18, 2022"
+  },
+  "FLRUSDT": {
+    "side": "buy",
+    "entryPrice": 0.0596,
+    "quantity": 14.2381,
+    "entryTime": "2023-01-09T00:00:00.000Z",
+    "orderId": "AIRDROP",
+    "paper": false,
+    "notes": "XRP airdrop — FLR launch price Jan 9, 2023 (Bitrue opening ~$0.0596, ATH $0.1501 on Jan 10)"
+  }
+}
