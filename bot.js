@@ -23,32 +23,38 @@ function checkOnboarding() {
   const missing = [...(!hasApiKey ? ["KRAKEN_API_KEY"] : []), ...(!hasSecretKey ? ["KRAKEN_SECRET_KEY"] : [])];
 
   if (!existsSync(".env")) {
-    console.log(
-      "\n⚠️  No .env file found — opening it for you to fill in...\n",
-    );
-    writeFileSync(
-      ".env",
-      [
-        "# Kraken credentials",
-        "BITGET_API_KEY=",
-        "BITGET_SECRET_KEY=",
-        "",
-        "# Trading config",
-        "PORTFOLIO_VALUE_USD=1000",
-        "MAX_TRADE_SIZE_USD=100",
-        "MAX_TRADES_PER_DAY=3",
-        "PAPER_TRADING=true",
-        "SYMBOL=BTCUSDT",
-        "TIMEFRAME=4H",
-      ].join("\n") + "\n",
-    );
-    try {
-      execSync("open .env");
-    } catch {}
-    console.log(
-      "Fill in your Kraken credentials in .env then re-run: node bot.js\n",
-    );
-    process.exit(0);
+    // On Railway / cloud deployments env vars are injected directly — no .env needed.
+    // Only write the template and exit if we're running locally with no credentials at all.
+    if (!hasApiKey || !hasSecretKey) {
+      console.log(
+        "\n⚠️  No .env file found — opening it for you to fill in...\n",
+      );
+      writeFileSync(
+        ".env",
+        [
+          "# Kraken credentials",
+          "BITGET_API_KEY=",
+          "BITGET_SECRET_KEY=",
+          "",
+          "# Trading config",
+          "PORTFOLIO_VALUE_USD=1000",
+          "MAX_TRADE_SIZE_USD=100",
+          "MAX_TRADES_PER_DAY=3",
+          "PAPER_TRADING=true",
+          "SYMBOL=BTCUSDT",
+          "TIMEFRAME=4H",
+        ].join("\n") + "\n",
+      );
+      try {
+        execSync("open .env");
+      } catch {}
+      console.log(
+        "Fill in your Kraken credentials in .env then re-run: node bot.js\n",
+      );
+      process.exit(0);
+    }
+    // Credentials available via env vars (Railway etc.) — continue without .env file
+    console.log("  ℹ️  No .env file — running from environment variables.\n");
   }
 
   if (missing.length > 0) {
