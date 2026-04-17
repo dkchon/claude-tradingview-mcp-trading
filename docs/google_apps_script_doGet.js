@@ -2,6 +2,111 @@ function normalizeKey(s) {
   return s.replace(/\s*\(.*?\)\s*/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+// ── Portfolio Summary ─────────────────────────────────────────────────────────
+// Reads all LIVE trades, calculates realized P&L per symbol + overall total,
+// and writes/refreshes the "Portfolio" tab. Called after every trade append.
+
+function updatePortfolioSummary(ss) {
+  var tradeSheet = ss.getSheetByName("Trades") || ss.getActiveSheet();
+  var data = tradeSheet.getDataRange().getValues();
+  if (data.length < 2) return;
+
+  var headers = data[0].map(function(h) { return normalizeKey(h); });
+  var symIdx     = headers.indexOf("symbol");
+  var sideIdx    = headers.indexOf("side");
+  var totalIdx   = headers.indexOf("totalusd");
+  var feeIdx     = headers.indexOf("fee");
+  var netIdx     = headers.indexOf("netamount");
+  var modeIdx    = headers.indexOf("mode");
+
+  var summary = {}; // { symbol: { spent, received, fees, buys, sells } }
+
+  for (var i = 1; i < data.length; i++) {
+    var mode = (data[i][modeIdx] || "").toString();
+    if (mode !== "LIVE") continue;
+
+    var sym  = (data[i][symIdx]  || "").toString();
+    var side = (data[i][sideIdx] || "").toString().toUpperCase();
+    var totalUSD  = parseFloat(data[i][totalIdx]) || 0;
+    var fee       = parseFloat(data[i][feeIdx])   || 0;
+    var netAmount = parseFloat(data[i][netIdx])   || 0;
+    if (!sym || (side !== "BUY" && side !== "SELL")) continue;
+
+    if (!summary[sym]) summary[sym] = { spent: 0, received: 0, fees: 0, buys: 0, sells: 0 };
+    if (side === "BUY") {
+      summary[sym].spent    += totalUSD;
+      summary[sym].fees     += fee;
+      summary[sym].buys     += 1;
+    } else {
+      summary[sym].received += netAmount > 0 ? netAmount : totalUSD;
+      summary[sym].fees     += fee;
+      summary[sym].sells    += 1;
+    }
+  }
+
+  // ── Build / refresh Portfolio tab ────────────────────────────────────────────
+  var portSheet = ss.getSheetByName("Portfolio");
+  if (!portSheet) portSheet = ss.insertSheet("Portfolio");
+  portSheet.clearContents();
+  portSheet.clearFormats();
+
+  // Header row
+  var headerRow = ["Symbol", "Buys", "Total Spent", "Sells", "Total Received", "Fees", "Realized P&L", "Status"];
+  portSheet.getRange(1, 1, 1, headerRow.length).setValues([headerRow]).setFontWeight("bold");
+
+  // Data rows sorted by P&L descending
+  var rows = [];
+  var grandSpent = 0, grandReceived = 0, grandFees = 0;
+
+  for (var sym in summary) {
+    var s = summary[sym];
+    var pnl = s.received - s.spent - s.fees;
+    rows.push([
+      sym.replace("USDT", ""),
+      s.buys,
+      parseFloat(s.spent.toFixed(2)),
+      s.sells,
+      parseFloat(s.received.toFixed(2)),
+      parseFloat(s.fees.toFixed(4)),
+      parseFloat(pnl.toFixed(2)),
+      pnl >= 0 ? "PROFIT" : "LOSS"
+    ]);
+    grandSpent    += s.spent;
+    grandReceived += s.received;
+    grandFees     += s.fees;
+  }
+
+  rows.sort(function(a, b) { return b[6] - a[6]; });
+
+  if (rows.length > 0) {
+    portSheet.getRange(2, 1, rows.length, headerRow.length).setValues(rows);
+
+    // Color PROFIT green, LOSS red in Status column
+    for (var r = 0; r < rows.length; r++) {
+      var cell = portSheet.getRange(r + 2, 8);
+      cell.setFontColor(rows[r][6] >= 0 ? "#2e7d32" : "#c62828");
+    }
+  }
+
+  // Totals row
+  var totalRow = rows.length + 2;
+  var grandPnl  = grandReceived - grandSpent - grandFees;
+  portSheet.getRange(totalRow, 1, 1, headerRow.length).setValues([[
+    "TOTAL",
+    "",
+    parseFloat(grandSpent.toFixed(2)),
+    "",
+    parseFloat(grandReceived.toFixed(2)),
+    parseFloat(grandFees.toFixed(4)),
+    parseFloat(grandPnl.toFixed(2)),
+    grandPnl >= 0 ? "PROFIT" : "LOSS"
+  ]]).setFontWeight("bold");
+  portSheet.getRange(totalRow, 8).setFontColor(grandPnl >= 0 ? "#2e7d32" : "#c62828");
+
+  // Timestamp
+  portSheet.getRange(totalRow + 2, 1).setValue("Last updated: " + new Date().toUTCString());
+}
+
 function doPost(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var row = JSON.parse(e.postData.contents);
@@ -91,6 +196,12 @@ function doPost(e) {
   }
 
   sheet.appendRow(values);
+
+  // ── Refresh Portfolio summary after every live trade ─────────────────────────
+  if (row.mode === "LIVE" || row.mode === "PAPER") {
+    updatePortfolioSummary(ss);
+  }
+
   return ContentService.createTextOutput(JSON.stringify({ success: true, action: "appended" }))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -99,6 +210,13 @@ function doGet(e) {
   var action = e && e.parameter ? e.parameter.action : null;
   var hours = parseInt((e && e.parameter && e.parameter.hours) ? e.parameter.hours : "24");
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // ── Manually trigger portfolio refresh ───────────────────────────────────────
+  if (action === "refresh-portfolio") {
+    updatePortfolioSummary(ss);
+    return ContentService.createTextOutput(JSON.stringify({ success: true, action: "portfolio-refreshed" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
   // ── Return open positions ────────────────────────────────────────────────────
   if (action === "positions") {
