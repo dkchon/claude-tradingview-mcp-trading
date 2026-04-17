@@ -401,7 +401,11 @@ if (sheetsData && Array.isArray(sheetsData.trades)) {
     if (overnightLive.length > 0) {
       console.log(`  🔴 LIVE: ${overnightLive.length} trade(s)`);
       for (const t of overnightLive) {
-        console.log(`    ${t.time}  ${t.symbol}  ${t.side?.toUpperCase()}  $${t.totalUSD}`);
+        // Find the date value — column A header may vary, look for an ISO date string among values
+        const dateVal = t.date || Object.values(t).find(v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) || "";
+        const dateStr = dateVal ? dateVal.toString().slice(0, 10) : "";
+        const timeStr = t.time ? new Date(t.time).toISOString().slice(11, 19) : "";
+        console.log(`    ${dateStr} ${timeStr}  ${t.symbol}  ${t.side?.toUpperCase()}  $${t.totalusd}`);
       }
     }
     if (overnightPaper.length > 0) {
