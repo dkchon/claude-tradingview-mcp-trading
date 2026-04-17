@@ -142,13 +142,21 @@ function doGet(e) {
     var cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
     var trades = [];
     for (var ti = 1; ti < tradeData.length; ti++) {
-      var dateStr = tradeData[ti][0];
-      var timeStr = tradeData[ti][1];
-      if (!dateStr || !timeStr) continue;
+      var rawDate = tradeData[ti][0];
+      var rawTime = tradeData[ti][1];
+      if (!rawDate || !rawTime) continue;
+      // Handle Date objects (Google Sheets auto-converts date strings to Date objects)
+      var dateStr = rawDate instanceof Date
+        ? Utilities.formatDate(rawDate, "UTC", "yyyy-MM-dd")
+        : String(rawDate);
+      var timeStr = rawTime instanceof Date
+        ? Utilities.formatDate(rawTime, "UTC", "HH:mm:ss")
+        : String(rawTime);
       var ts = new Date(dateStr + "T" + timeStr + "Z");
       if (isNaN(ts) || ts < cutoff) continue;
       var tObj = {};
-      tradeHeaders.forEach(function(h, idx) { tObj[h] = tradeData[ti][idx]; });
+      // Use normalizeKey so callers can filter by t.mode, t.symbol, etc. (lowercase)
+      tradeHeaders.forEach(function(h, idx) { tObj[normalizeKey(h)] = tradeData[ti][idx]; });
       trades.push(tObj);
     }
     return ContentService.createTextOutput(JSON.stringify({ trades: trades }))
