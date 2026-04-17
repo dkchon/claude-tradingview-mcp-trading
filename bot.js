@@ -322,7 +322,7 @@ function checkTradeLimits(log) {
   );
 
   console.log(
-    `✅ Trade size: $${CONFIG.maxTradeSizeUSD.toFixed(2)} per trade`,
+    `✅ Trade size: $${CONFIG.maxTradeSizeUSD.toFixed(2)} per trade  [MAX_TRADE_SIZE_USD=${process.env.MAX_TRADE_SIZE_USD ?? "not set — using default $100"}]`,
   );
 
   return true;
