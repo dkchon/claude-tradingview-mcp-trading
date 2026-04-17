@@ -1,21 +1,4 @@
 {
-  "TAOUSDT": {
-    "side": "buy",
-    "entryPrice": 247.8359,
-    "quantity": 0.10090,
-    "entryTime": "2026-04-15T05:02:00.000Z",
-    "orderId": "RAILWAY-LIVE",
-    "paper": false
-  },
-  "CCUSDT": {
-    "side": "buy",
-    "entryPrice": 0.15082,
-    "quantity": 331.47721,
-    "entryTime": "2026-04-15T12:02:00.000Z",
-    "orderId": "RAILWAY-LIVE",
-    "paper": false,
-    "notes": "2 tranches: 163.60185 @ $0.15279 (Apr 15) + 167.87536 @ $0.14890 (Apr 16)"
-  },
   "XRPUSDT": {
     "side": "buy",
     "entryPrice": 0.9337,
@@ -51,14 +34,6 @@
     "orderId": "KRAKEN-HISTORY",
     "paper": false,
     "notes": "Merged: 0.00033352 @ $74789.51 (remaining Apr 15) + 0.000333 @ $75116.30 (Apr 16 accidental rebuy). Weighted avg."
-  },
-  "HBARUSDT": {
-    "side": "buy",
-    "entryPrice": 0.0869,
-    "quantity": 287.65389,
-    "entryTime": "2026-04-16T02:02:46.000Z",
-    "orderId": "RAILWAY-LIVE",
-    "paper": false
   },
   "EWTUSDT": {
     "side": "buy",
