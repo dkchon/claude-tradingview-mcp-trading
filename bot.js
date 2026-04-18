@@ -19,7 +19,7 @@ import { execSync } from "child_process";
 function checkOnboarding() {
   // Support both KRAKEN_API_KEY (preferred) and legacy BITGET_API_KEY names
   const hasApiKey = process.env.KRAKEN_API_KEY || process.env.BITGET_API_KEY;
-  const hasSecretKey = process.env.KRAKEN_SECRET_KEY || process.env.BITGET_SECRET_KEY;
+  const hasSecretKey = process.env.KRAKEN_SECRET_KEY || process.env.KRAKEN_PRIVATE_KEY || process.env.BITGET_SECRET_KEY;
   const missing = [...(!hasApiKey ? ["KRAKEN_API_KEY"] : []), ...(!hasSecretKey ? ["KRAKEN_SECRET_KEY"] : [])];
 
   if (!existsSync(".env")) {
@@ -87,7 +87,7 @@ const CONFIG = {
   tradeMode: process.env.TRADE_MODE || "spot",
   kraken: {
     apiKey: process.env.KRAKEN_API_KEY || process.env.BITGET_API_KEY,
-    privateKey: process.env.KRAKEN_SECRET_KEY || process.env.BITGET_SECRET_KEY,
+    privateKey: process.env.KRAKEN_SECRET_KEY || process.env.KRAKEN_PRIVATE_KEY || process.env.BITGET_SECRET_KEY,
     baseUrl: "https://api.kraken.com",
   },
 };
