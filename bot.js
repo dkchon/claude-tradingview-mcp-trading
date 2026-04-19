@@ -360,6 +360,8 @@ const KRAKEN_ASSET_MAP = {
   "HBARUSDT": "HBAR",
   "TAOUSDT":  "TAO",
   "CCUSDT":   "CC",
+  "XLMUSDT":  "XXLM",
+  "SHIBUSDT": "SHIB",
   "FLRUSDT":  "FLR",
   "EWTUSDT":  "EWT",
   "SGBUSDT":  "SGB",

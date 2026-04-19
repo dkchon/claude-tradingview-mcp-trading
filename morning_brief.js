@@ -22,6 +22,7 @@ const KRAKEN_ASSET_MAP = {
   "XXRP": { symbol: "XRPUSDT",  pair: "XRPUSD",   name: "XRP"  },
   "LINK": { symbol: "LINKUSDT", pair: "LINKUSD",  name: "LINK" },
   "HBAR": { symbol: "HBARUSDT", pair: "HBARUSD",  name: "HBAR" },
+  "XXLM": { symbol: "XLMUSDT",  pair: "XLMUSD",   name: "XLM"  },
   "SHIB": { symbol: "SHIBUSDT", pair: "SHIBUSD",  name: "SHIB" },
   "TAO":  { symbol: "TAOUSDT",  pair: "TAOUSD",   name: "TAO"  },
   "CC":   { symbol: "CCUSDT",   pair: "CCUSD",    name: "CC"   },

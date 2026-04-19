@@ -1,4 +1,12 @@
 {
+  "XLMUSDT": {
+    "side": "buy",
+    "entryPrice": 0.17044,
+    "quantity": 586.72017555,
+    "entryTime": "2026-04-19T00:00:56.657Z",
+    "orderId": "O4TLJX-6HYZI-MOW27C",
+    "paper": false
+  },
   "XRPUSDT": {
     "side": "buy",
     "entryPrice": 0.9337,
