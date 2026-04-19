@@ -149,6 +149,7 @@ const SYMBOL_TO_KRAKEN = {
   "XRPUSDT":  "XXRP",
   "LINKUSDT": "LINK",
   "HBARUSDT": "HBAR",
+  "XLMUSDT":  "XXLM",
   "SHIBUSDT": "SHIB",
   "TAOUSDT":  "TAO",
   "CCUSDT":   "CC",
@@ -189,7 +190,9 @@ async function reconcilePositions(positions, krakenBalances) {
   if (!krakenBalances) return null;
   const mismatches = [];
   const matches = [];
+  const untracked = [];
 
+  // Pass 1 — check every tracked position against Kraken
   for (const [symbol, pos] of Object.entries(positions)) {
     const krakenAsset = SYMBOL_TO_KRAKEN[symbol];
     if (!krakenAsset) continue;
@@ -198,14 +201,29 @@ async function reconcilePositions(positions, krakenBalances) {
     const diff = Math.abs(krakenQty - posQty);
     const pct = posQty > 0 ? (diff / posQty) * 100 : 0;
 
-    // Flag if difference > 1% or > small absolute threshold
     if (pct > 1 || (diff > 0.00001 && pct > 0.1)) {
       mismatches.push({ symbol, posQty, krakenQty, diff, pct });
     } else {
       matches.push(symbol);
     }
   }
-  return { mismatches, matches };
+
+  // Pass 2 — check Kraken balances for holdings not in positions.json
+  const trackedAssets = new Set(
+    Object.keys(positions).map(s => SYMBOL_TO_KRAKEN[s]).filter(Boolean)
+  );
+  const skipAssets = new Set(["ZUSD", "KFEE", "USDC", "USDT"]);
+  for (const [asset, rawQty] of Object.entries(krakenBalances)) {
+    if (skipAssets.has(asset)) continue;
+    const qty = parseFloat(rawQty);
+    if (qty <= 0) continue;
+    if (trackedAssets.has(asset)) continue;
+    const info = KRAKEN_ASSET_MAP[asset];
+    const symbol = info ? info.symbol : asset;
+    untracked.push({ asset, symbol, qty });
+  }
+
+  return { mismatches, matches, untracked };
 }
 
 async function syncBalances(krakenBalances) {
@@ -425,14 +443,20 @@ console.log(`  POSITION RECONCILIATION — KRAKEN vs TRACKED`);
 console.log(`${LINE}`);
 if (!reconciliation) {
   console.log(`  ⚠️  Kraken API not available — skipping reconciliation`);
-} else if (reconciliation.mismatches.length === 0) {
-  console.log(`  ✅ All ${reconciliation.matches.length} positions match Kraken balances`);
 } else {
-  console.log(`  ✅ ${reconciliation.matches.length} positions match`);
-  console.log(`  ⚠️  ${reconciliation.mismatches.length} MISMATCH(ES) — manual review needed:\n`);
-  for (const m of reconciliation.mismatches) {
-    const sym = m.symbol.replace("USDT", "");
-    console.log(`  ❌ ${sym.padEnd(6)}  tracked: ${m.posQty.toFixed(6)}  kraken: ${m.krakenQty.toFixed(6)}  diff: ${m.diff.toFixed(6)} (${m.pct.toFixed(1)}%)`);
+  const { mismatches, matches, untracked } = reconciliation;
+  if (mismatches.length === 0 && untracked.length === 0) {
+    console.log(`  ✅ All ${matches.length} positions match Kraken balances`);
+  } else {
+    if (matches.length > 0) console.log(`  ✅ ${matches.length} position(s) match`);
+    for (const m of mismatches) {
+      const sym = m.symbol.replace("USDT", "");
+      console.log(`  ❌ ${sym.padEnd(6)}  tracked: ${m.posQty.toFixed(6)}  kraken: ${m.krakenQty.toFixed(6)}  diff: ${m.diff.toFixed(6)} (${m.pct.toFixed(1)}%)`);
+    }
+    for (const u of untracked) {
+      const sym = u.symbol.replace("USDT", "");
+      console.log(`  ⚠️  ${sym.padEnd(6)}  kraken balance: ${u.qty.toFixed(6)}  — NOT in positions.json (Railway bought?)`);
+    }
   }
 }
 
