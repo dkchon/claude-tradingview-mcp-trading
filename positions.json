@@ -1,18 +1,18 @@
 {
+  "HBARUSDT": {
+    "side": "buy",
+    "entryPrice": 0.08884,
+    "quantity": 1126.252950,
+    "entryTime": "2026-04-19T16:15:30.323Z",
+    "orderId": "OD76NO-ILYTB-ULLQNA",
+    "paper": false
+  },
   "CCUSDT": {
     "side": "buy",
     "entryPrice": 0.14679,
     "quantity": 679.53248,
     "entryTime": "2026-04-19T04:00:52.671Z",
     "orderId": "OTZONQ-D64MT-36I77R",
-    "paper": false
-  },
-  "XLMUSDT": {
-    "side": "buy",
-    "entryPrice": 0.17044,
-    "quantity": 586.72017555,
-    "entryTime": "2026-04-19T00:00:56.657Z",
-    "orderId": "O4TLJX-6HYZI-MOW27C",
     "paper": false
   },
   "XRPUSDT": {
