@@ -7,15 +7,7 @@
     "orderId": "OD76NO-ILYTB-ULLQNA",
     "paper": false
   },
-  "CCUSDT": {
-    "side": "buy",
-    "entryPrice": 0.14679,
-    "quantity": 679.53248,
-    "entryTime": "2026-04-19T04:00:52.671Z",
-    "orderId": "OTZONQ-D64MT-36I77R",
-    "paper": false
-  },
-  "XRPUSDT": {
+"XRPUSDT": {
     "side": "buy",
     "entryPrice": 0.9337,
     "quantity": 125.02271066,
