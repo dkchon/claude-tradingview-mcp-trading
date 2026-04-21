@@ -429,8 +429,19 @@ async function loadPositions() {
   return JSON.parse(readFileSync(POSITIONS_FILE, "utf8"));
 }
 
-function savePositions(positions) {
+async function savePositions(positions) {
   writeFileSync(POSITIONS_FILE, JSON.stringify(positions, null, 2));
+  const url = process.env.GOOGLE_SHEETS_WEBHOOK;
+  if (url) {
+    try {
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "savePositions", positions }),
+        signal: AbortSignal.timeout(5000),
+      });
+    } catch { /* non-fatal — local file is source of truth for local runs */ }
+  }
 }
 
 function checkExitConditions(position, price, rsi3, candles) {
@@ -919,7 +930,7 @@ async function run() {
     }
   }
 
-  savePositions(positions);
+  await savePositions(positions);
   saveLog(log);
   console.log(`\nDecision log saved → ${LOG_FILE}`);
   console.log("═══════════════════════════════════════════════════════════\n");
