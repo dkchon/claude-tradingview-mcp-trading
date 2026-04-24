@@ -10,7 +10,7 @@
 import "dotenv/config";
 import https from "https";
 import crypto from "crypto";
-import { readFileSync, writeFileSync, existsSync, appendFileSync, createReadStream } from "fs";
+import { readFileSync, writeFileSync, existsSync, appendFileSync } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
 import { createRequire } from "module";
@@ -35,13 +35,13 @@ const TICKER_MAP = {
   BTCUSDT:  "XBTUSD",  ETHUSDT:  "ETHUSD",  XRPUSDT:  "XRPUSD",
   LINKUSDT: "LINKUSD", HBARUSDT: "HBARUSD", TAOUSDT:  "TAOUSD",
   FLRUSDT:  "FLRUSD",  EWTUSDT:  "EWTUSD",  SGBUSDT:  "SGBUSD",
-  XLMUSDT:  "XLMUSD",  SHIBUSDT: "SHIBUSD",  CCUSDT: "CCUSD",
+  XLMUSDT:  "XLMUSD",  SHIBUSDT: "SHIBUSD",  CCUSDT: "CCUSD",  GRASSUSDT: "GRASSUSD",
 };
 
 const ASSET_MAP = {
   BTCUSDT: "XXBT", ETHUSDT: "XETH",  XRPUSDT:  "XXRP",  LINKUSDT: "LINK",
   HBARUSDT: "HBAR", TAOUSDT: "TAO",  FLRUSDT:  "FLR",   EWTUSDT:  "EWT",
-  SGBUSDT: "SGB",  XLMUSDT: "XXLM", SHIBUSDT: "SHIB",  CCUSDT: "CC",
+  SGBUSDT: "SGB",  XLMUSDT: "XXLM", SHIBUSDT: "SHIB",  CCUSDT: "CC",  GRASSUSDT: "GRASS",
 };
 
 // CSV headers matching trades.csv on disk

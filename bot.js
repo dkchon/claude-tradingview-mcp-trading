@@ -365,6 +365,7 @@ const KRAKEN_ASSET_MAP = {
   "FLRUSDT":  "FLR",
   "EWTUSDT":  "EWT",
   "SGBUSDT":  "SGB",
+  "GRASSUSDT": "GRASS",
 };
 
 function signKraken(path, nonce, postData) {
