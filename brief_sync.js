@@ -13,7 +13,9 @@ import crypto from "crypto";
 import { readFileSync, writeFileSync, existsSync, appendFileSync, createReadStream } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
-import * as XLSX from "xlsx";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const XLSX = require("xlsx");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -33,13 +35,13 @@ const TICKER_MAP = {
   BTCUSDT:  "XBTUSD",  ETHUSDT:  "ETHUSD",  XRPUSDT:  "XRPUSD",
   LINKUSDT: "LINKUSD", HBARUSDT: "HBARUSD", TAOUSDT:  "TAOUSD",
   FLRUSDT:  "FLRUSD",  EWTUSDT:  "EWTUSD",  SGBUSDT:  "SGBUSD",
-  XLMUSDT:  "XLMUSD",  SHIBUSDT: "SHIBUSD",
+  XLMUSDT:  "XLMUSD",  SHIBUSDT: "SHIBUSD",  CCUSDT: "CCUSD",
 };
 
 const ASSET_MAP = {
   BTCUSDT: "XXBT", ETHUSDT: "XETH",  XRPUSDT:  "XXRP",  LINKUSDT: "LINK",
   HBARUSDT: "HBAR", TAOUSDT: "TAO",  FLRUSDT:  "FLR",   EWTUSDT:  "EWT",
-  SGBUSDT: "SGB",  XLMUSDT: "XXLM", SHIBUSDT: "SHIB",
+  SGBUSDT: "SGB",  XLMUSDT: "XXLM", SHIBUSDT: "SHIB",  CCUSDT: "CC",
 };
 
 // CSV headers matching trades.csv on disk
