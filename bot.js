@@ -126,10 +126,8 @@ async function fetchCandles(symbol, interval, limit = 100) {
     "TAOUSDT": "TAOUSD",
     "FLRUSDT": "FLRUSD",
     "SHIBUSDT": "SHIBUSD",
-    "CCUSDT": "CCUSD",
+    "CCUSDT":    "CCUSD",
     "GRASSUSDT": "GRASSUSD",
-    "SOLUSDT":   "SOLUSD",
-    "HYPEUSDT":  "HYPEUSD",
     "SOLUSDT":   "SOLUSD",
     "HYPEUSDT":  "HYPEUSD",
   };
@@ -347,8 +345,10 @@ const KRAKEN_SYMBOL_MAP = {
   "TAOUSDT": "TAOUSD",
   "FLRUSDT": "FLRUSD",
   "SHIBUSDT": "SHIBUSD",
-  "CCUSDT": "CCUSD",
+  "CCUSDT":    "CCUSD",
   "GRASSUSDT": "GRASSUSD",
+  "SOLUSDT":   "SOLUSD",
+  "HYPEUSDT":  "HYPEUSD",
 };
 
 // Kraken symbol → Kraken asset code (for balance lookups)
@@ -366,6 +366,8 @@ const KRAKEN_ASSET_MAP = {
   "EWTUSDT":  "EWT",
   "SGBUSDT":  "SGB",
   "GRASSUSDT": "GRASS",
+  "SOLUSDT":   "SOL",
+  "HYPEUSDT":  "HYPE",
 };
 
 function signKraken(path, nonce, postData) {
