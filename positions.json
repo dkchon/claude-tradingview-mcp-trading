@@ -77,5 +77,13 @@
     "entryTime": "2026-04-20T14:01:26.796Z",
     "orderId": "OW4W37-XVW7L-57VJDR",
     "paper": false
+  },
+  "CCUSDT": {
+    "side": "buy",
+    "entryPrice": 0.152272,
+    "quantity": 656.64193,
+    "entryTime": "2026-04-24T10:00:58.661Z",
+    "orderId": "OXQINJ-JV3DL-WSVT3K",
+    "paper": false
   }
 }
