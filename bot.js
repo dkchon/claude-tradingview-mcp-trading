@@ -438,7 +438,7 @@ async function savePositions(positions) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "savePositions", positions }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(10000),
       });
     } catch { /* non-fatal — local file is source of truth for local runs */ }
   }
