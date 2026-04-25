@@ -85,5 +85,29 @@
     "entryTime": "2026-04-24T10:00:58.661Z",
     "orderId": "OXQINJ-JV3DL-WSVT3K",
     "paper": false
+  },
+  "SOLUSDT": {
+    "side": "buy",
+    "entryPrice": 86.28,
+    "quantity": 1.15928588,
+    "entryTime": "2026-04-24T18:30:47.951Z",
+    "orderId": "OJSU5L-Q5FC4-K7YTWG",
+    "paper": false
+  },
+  "XLMUSDT": {
+    "side": "buy",
+    "entryPrice": 0.17363,
+    "quantity": 575.93733802,
+    "entryTime": "2026-04-25T06:01:00.000Z",
+    "orderId": "OVBVB5-IQWPU-JMUYUU",
+    "paper": false
+  },
+  "HYPEUSDT": {
+    "side": "buy",
+    "entryPrice": 41.47,
+    "quantity": 2.41080039,
+    "entryTime": "2026-04-25T13:15:39.533Z",
+    "orderId": "OUGGRG-R7IID-OSRZEI",
+    "paper": false
   }
 }
