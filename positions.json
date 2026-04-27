@@ -1,13 +1,5 @@
 {
-  "HBARUSDT": {
-    "side": "buy",
-    "entryPrice": 0.08884,
-    "quantity": 1126.252950,
-    "entryTime": "2026-04-19T16:15:30.323Z",
-    "orderId": "OD76NO-ILYTB-ULLQNA",
-    "paper": false
-  },
-"XRPUSDT": {
+  "XRPUSDT": {
     "side": "buy",
     "entryPrice": 0.9337,
     "quantity": 125.02271066,
@@ -69,45 +61,5 @@
     "orderId": "AIRDROP",
     "paper": false,
     "notes": "XRP airdrop — FLR launch price Jan 9, 2023 (Bitrue opening ~$0.0596, ATH $0.1501 on Jan 10)"
-  },
-  "TAOUSDT": {
-    "side": "buy",
-    "entryPrice": 242.98879440,
-    "quantity": 0.41074,
-    "entryTime": "2026-04-20T14:01:26.796Z",
-    "orderId": "OW4W37-XVW7L-57VJDR",
-    "paper": false
-  },
-  "CCUSDT": {
-    "side": "buy",
-    "entryPrice": 0.152272,
-    "quantity": 656.64193,
-    "entryTime": "2026-04-24T10:00:58.661Z",
-    "orderId": "OXQINJ-JV3DL-WSVT3K",
-    "paper": false
-  },
-  "SOLUSDT": {
-    "side": "buy",
-    "entryPrice": 86.28,
-    "quantity": 1.15928588,
-    "entryTime": "2026-04-24T18:30:47.951Z",
-    "orderId": "OJSU5L-Q5FC4-K7YTWG",
-    "paper": false
-  },
-  "XLMUSDT": {
-    "side": "buy",
-    "entryPrice": 0.17363,
-    "quantity": 575.93733802,
-    "entryTime": "2026-04-25T06:01:00.000Z",
-    "orderId": "OVBVB5-IQWPU-JMUYUU",
-    "paper": false
-  },
-  "HYPEUSDT": {
-    "side": "buy",
-    "entryPrice": 41.47,
-    "quantity": 2.41080039,
-    "entryTime": "2026-04-25T13:15:39.533Z",
-    "orderId": "OUGGRG-R7IID-OSRZEI",
-    "paper": false
   }
 }
