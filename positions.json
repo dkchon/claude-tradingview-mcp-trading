@@ -62,12 +62,12 @@
     "paper": false,
     "notes": "XRP airdrop — FLR launch price Jan 9, 2023 (Bitrue opening ~$0.0596, ATH $0.1501 on Jan 10)"
   },
-  "CCUSDT": {
+  "XLMUSDT": {
     "side": "buy",
-    "entryPrice": 0.14912,
-    "quantity": 670.42102,
-    "entryTime": "2026-04-28T10:01:04.688Z",
-    "orderId": "OJ5GCG-N5XA3-EQJFV2",
+    "entryPrice": 0.16021,
+    "quantity": 936.39388472,
+    "entryTime": "2026-04-30T10:00:45.957Z",
+    "orderId": "OUS2NI-S7A4X-BI2AEU",
     "paper": false
   }
 }
