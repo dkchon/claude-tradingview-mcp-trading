@@ -68,6 +68,16 @@
     "quantity": 936.39388472,
     "entryTime": "2026-04-30T10:00:45.957Z",
     "orderId": "OUS2NI-S7A4X-BI2AEU",
-    "paper": false
+    "paper": false,
+    "notes": "XLM removed from watchlist — bot will NOT manage this exit. Close manually on Kraken."
+  },
+  "CCUSDT": {
+    "side": "buy",
+    "entryPrice": 0.152272,
+    "quantity": 656.64193,
+    "entryTime": "2026-04-24T10:00:58.000Z",
+    "orderId": "OXQINJ-JV3DL-WSVT3K",
+    "paper": false,
+    "notes": "Recovered — was missing from positions.json due to double-entry bug on Apr28. Verify qty against Kraken balance before bot next runs."
   }
 }

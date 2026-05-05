@@ -418,6 +418,7 @@ async function placeKrakenOrder(symbol, side, sizeUSD, price) {
 const POSITIONS_FILE = process.env.POSITIONS_FILE || "positions.json";
 
 async function loadPositions() {
+  let sheetsPositions = null;
   const url = process.env.GOOGLE_SHEETS_WEBHOOK;
   if (url) {
     try {
@@ -425,14 +426,35 @@ async function loadPositions() {
       if (res.ok) {
         const data = await res.json();
         if (data.positions && Object.keys(data.positions).length > 0) {
-          console.log(`  📋 Positions loaded from Google Sheets (${Object.keys(data.positions).length} open)`);
-          return data.positions;
+          sheetsPositions = data.positions;
+          console.log(`  📋 Positions loaded from Google Sheets (${Object.keys(sheetsPositions).length} open)`);
+          // Cache to local file — protects against Sheets being unavailable next run
+          writeFileSync(POSITIONS_FILE, JSON.stringify(sheetsPositions, null, 2));
         }
       }
     } catch { /* fall through to local file */ }
   }
-  if (!existsSync(POSITIONS_FILE)) return {};
-  return JSON.parse(readFileSync(POSITIONS_FILE, "utf8"));
+
+  let localPositions = {};
+  if (existsSync(POSITIONS_FILE)) {
+    try { localPositions = JSON.parse(readFileSync(POSITIONS_FILE, "utf8")); } catch { /* ignore */ }
+  }
+
+  if (sheetsPositions) {
+    // Merge: Sheets is authoritative, but include anything in local file that Sheets is missing
+    // (catches positions saved locally that didn't make it to Sheets due to a failed sync)
+    const merged = { ...localPositions, ...sheetsPositions };
+    const localOnly = Object.keys(localPositions).filter(k => !sheetsPositions[k]);
+    if (localOnly.length > 0) {
+      console.log(`  ⚠️  Positions in local file not found in Sheets: ${localOnly.join(", ")} — included in merged state`);
+    }
+    return merged;
+  }
+
+  if (Object.keys(localPositions).length > 0) {
+    console.log(`  📋 Positions loaded from local file (${Object.keys(localPositions).length} open)`);
+  }
+  return localPositions;
 }
 
 async function savePositions(positions) {
@@ -440,13 +462,18 @@ async function savePositions(positions) {
   const url = process.env.GOOGLE_SHEETS_WEBHOOK;
   if (url) {
     try {
-      await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "savePositions", positions }),
         signal: AbortSignal.timeout(10000),
       });
-    } catch { /* non-fatal — local file is source of truth for local runs */ }
+      if (!res.ok) {
+        console.log(`  ⚠️  POSITIONS NOT SAVED TO SHEETS (HTTP ${res.status}) — next Railway run may re-enter open positions!`);
+      }
+    } catch (err) {
+      console.log(`  ⚠️  POSITIONS NOT SAVED TO SHEETS (${err.message}) — next Railway run may re-enter open positions!`);
+    }
   }
 }
 
@@ -473,17 +500,21 @@ function checkExitConditions(position, price, rsi3, candles) {
     if (position.highWaterMark) {
       const trailingStop = position.highWaterMark * 0.98;
       if (price < trailingStop) {
-        // Momentum filter: only exit if last candle closed bearish
         const lastClose = candles[candles.length - 1]?.close;
         const prevClose = candles[candles.length - 2]?.close;
         const bearishCandle = lastClose && prevClose && lastClose < prevClose;
-        if (bearishCandle) {
+        const inProfit = price > entryPrice;
+        if (bearishCandle && inProfit) {
           return {
             exit: true,
             reason: `Trailing stop — price pulled back 2% from peak $${position.highWaterMark.toFixed(8)}, bearish candle confirmed (RSI ${rsi3.toFixed(1)})`,
           };
         }
-        console.log(`  ⏸  Trailing stop triggered but candle still bullish — holding (peak $${position.highWaterMark.toFixed(8)}, now $${price.toFixed(8)})`);
+        if (!bearishCandle) {
+          console.log(`  ⏸  Trailing stop triggered but candle still bullish — holding (peak $${position.highWaterMark.toFixed(8)}, now $${price.toFixed(8)})`);
+        } else if (!inProfit) {
+          console.log(`  ⏸  Trailing stop triggered but position not in profit ($${price.toFixed(8)} ≤ entry $${entryPrice.toFixed(8)}) — holding, hard stop loss will handle exit`);
+        }
       }
     }
 
