@@ -483,41 +483,39 @@ function checkExitConditions(position, price, rsi3, candles) {
   const { side, entryPrice } = position;
 
   if (side === "buy") {
-    // ── Hard stop loss — always immediate, no filters ──────────────────────────
-    const stopLoss = entryPrice * 0.97;
-    if (price < stopLoss) {
-      return { exit: true, reason: `Stop loss — price $${price.toFixed(8)} below entry -3% ($${stopLoss.toFixed(8)})` };
-    }
-
-    // ── RSI overbought: raise threshold to 85, activate trailing stop ──────────
-    if (rsi3 > 85) {
-      // Update high water mark as price climbs
-      if (!position.highWaterMark || price > position.highWaterMark) {
-        position.highWaterMark = price;
+    // ── Always track high water mark as price rises ────────────────────────────
+    if (!position.highWaterMark || price > position.highWaterMark) {
+      position.highWaterMark = price;
+      if (price > entryPrice * 1.01) {
         console.log(`  📈 New high water mark: $${price.toFixed(8)}  RSI(3): ${rsi3.toFixed(2)}`);
       }
     }
 
-    // ── Trailing stop: 2% pullback from peak, confirmed by bearish candle ──────
-    if (position.highWaterMark) {
-      const trailingStop = position.highWaterMark * 0.98;
+    // ── Trailing stop: 3% below peak, activates once 3%+ in profit ────────────
+    // Replaces the hard stop once profit threshold is reached so gains are locked in.
+    if (position.highWaterMark > entryPrice * 1.03) {
+      const trailingStop = position.highWaterMark * 0.97;
       if (price < trailingStop) {
         const lastClose = candles[candles.length - 1]?.close;
         const prevClose = candles[candles.length - 2]?.close;
         const bearishCandle = lastClose && prevClose && lastClose < prevClose;
-        const inProfit = price > entryPrice;
-        if (bearishCandle && inProfit) {
+        if (bearishCandle) {
           return {
             exit: true,
-            reason: `Trailing stop — price pulled back 2% from peak $${position.highWaterMark.toFixed(8)}, bearish candle confirmed (RSI ${rsi3.toFixed(1)})`,
+            reason: `Trailing stop — price pulled back 3% from peak $${position.highWaterMark.toFixed(8)} (stop $${trailingStop.toFixed(8)}), bearish candle confirmed (RSI ${rsi3.toFixed(1)})`,
           };
         }
-        if (!bearishCandle) {
-          console.log(`  ⏸  Trailing stop triggered but candle still bullish — holding (peak $${position.highWaterMark.toFixed(8)}, now $${price.toFixed(8)})`);
-        } else if (!inProfit) {
-          console.log(`  ⏸  Trailing stop triggered but position not in profit ($${price.toFixed(8)} ≤ entry $${entryPrice.toFixed(8)}) — holding, hard stop loss will handle exit`);
-        }
+        console.log(`  ⏸  Trailing stop at $${trailingStop.toFixed(8)} triggered but candle still bullish — holding (peak $${position.highWaterMark.toFixed(8)}, now $${price.toFixed(8)})`);
+      } else {
+        console.log(`  🔒 Trailing stop active: peak $${position.highWaterMark.toFixed(8)} | stop $${trailingStop.toFixed(8)} | now $${price.toFixed(8)}`);
       }
+      return { exit: false };
+    }
+
+    // ── Hard stop loss — only used before trailing stop activates ─────────────
+    const stopLoss = entryPrice * 0.97;
+    if (price < stopLoss) {
+      return { exit: true, reason: `Stop loss — price $${price.toFixed(8)} below entry -3% ($${stopLoss.toFixed(8)})` };
     }
 
   } else {
