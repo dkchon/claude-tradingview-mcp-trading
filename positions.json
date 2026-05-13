@@ -83,10 +83,19 @@
   "HBARUSDT": {
     "side": "buy",
     "entryPrice": 0.094735192,
-    "quantity": 1582.94639,
+    "quantity": 1635.85266,
     "entryTime": "2026-05-13T05:15:43.000Z",
     "orderId": "ON4PG4-3LNXS-H2IHTG",
     "paper": false,
-    "notes": "Bot entry May 13. Prior HBAR entries (May 10 @ $0.09696 and May 12 19:00 unknown position) fully closed by May 12."
+    "notes": "Bot entry May 13. Qty set to actual Kraken balance (1635.85266) — 52.9 extra vs logged buy (1582.95) from prior dust."
+  },
+  "SHIBUSDT": {
+    "side": "buy",
+    "entryPrice": 0.0000063200,
+    "quantity": 23771790.80824,
+    "entryTime": "2026-04-30T18:00:52.000Z",
+    "orderId": "O2SNQ7-P26MM-6MJFI5",
+    "paper": false,
+    "notes": "Orphaned Apr 30 buy. Bot re-entered May 1 (O3PFBB), sold May 3 — but Apr 30 position was never closed (same Sheets blank-state issue as HYPE). Stop at $0.0000061304."
   }
 }
