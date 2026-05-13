@@ -10,7 +10,7 @@
   },
   "LINKUSDT": {
     "side": "buy",
-    "entryPrice": 9.299280,
+    "entryPrice": 9.29928,
     "quantity": 2.688377,
     "entryTime": "2026-01-01T00:00:00.000Z",
     "orderId": "KRAKEN-HISTORY",
@@ -19,7 +19,7 @@
   },
   "ETHUSDT": {
     "side": "buy",
-    "entryPrice": 2362.10,
+    "entryPrice": 2362.1,
     "quantity": 0.01057,
     "entryTime": "2026-04-15T22:01:00.000Z",
     "orderId": "KRAKEN-HISTORY",
@@ -28,7 +28,7 @@
   },
   "BTCUSDT": {
     "side": "buy",
-    "entryPrice": 74938.00,
+    "entryPrice": 74938,
     "quantity": 0.00066652,
     "entryTime": "2026-04-15T22:01:00.000Z",
     "orderId": "KRAKEN-HISTORY",
@@ -64,11 +64,29 @@
   },
   "SOLUSDT": {
     "side": "buy",
-    "entryPrice": 93.37,
-    "quantity": 1.60651173,
-    "entryTime": "2026-05-09T10:31:10.000Z",
-    "orderId": "OHQVIU-FCJW4-H7TD25",
+    "entryPrice": 95.26,
+    "quantity": 1.57463783,
+    "entryTime": "2026-05-13T06:30:56.000Z",
+    "orderId": "ODZWRP-YD6V7-F5UD5J",
     "paper": false,
-    "notes": "Bot entry May 9. XLM closed May 4 (OXXOGR, stop loss). CC closed May 5 (O5WRST, conditions met)."
+    "notes": "Bot entry May 13. Previous SOL (May 9 entry) exited May 10 @ $94.69 (+1.4%)."
+  },
+  "HYPEUSDT": {
+    "side": "buy",
+    "entryPrice": 43.48,
+    "quantity": 3.45065562,
+    "entryTime": "2026-05-10T20:00:26.000Z",
+    "orderId": "OMD373-UNUGK-CPISIO",
+    "paper": false,
+    "notes": "WARNING: Double entry. Bot bought again May 13 @ $40.45 (3.70828183 qty, txid OVKNZD) without closing this position — possible stop-loss gap. Total HYPE exposure: ~7.16 qty."
+  },
+  "HBARUSDT": {
+    "side": "buy",
+    "entryPrice": 0.094735192,
+    "quantity": 1582.94639,
+    "entryTime": "2026-05-13T05:15:43.000Z",
+    "orderId": "ON4PG4-3LNXS-H2IHTG",
+    "paper": false,
+    "notes": "Bot entry May 13. Prior HBAR entries (May 10 @ $0.09696 and May 12 19:00 unknown position) fully closed by May 12."
   }
 }
