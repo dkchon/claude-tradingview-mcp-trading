@@ -4,63 +4,45 @@
     "entryPrice": 0.9337,
     "quantity": 125.02271066,
     "entryTime": "2017-12-15T00:00:00.000Z",
-    "orderId": "MANUAL-ENTRY",
+    "orderId": "LEGACY",
     "paper": false,
-    "notes": "Weighted avg cost basis. Bot sold portions on 2026-04-15."
+    "notes": "Original long-term hold. Bot-managed as of 2026-05-13. Entry = weighted avg cost basis."
   },
   "LINKUSDT": {
     "side": "buy",
     "entryPrice": 9.29928,
-    "quantity": 2.688377,
+    "quantity": 2.6883772800,
     "entryTime": "2026-01-01T00:00:00.000Z",
-    "orderId": "KRAKEN-HISTORY",
+    "orderId": "LEGACY",
     "paper": false,
-    "notes": "Original position. Apr 16 23:02 rebuy (2.628151 @ $9.518) was bought and sold by bot at 00:02 Apr 17 (+0.92%)."
+    "notes": "Original hold. Bot-managed as of 2026-05-13."
   },
   "ETHUSDT": {
     "side": "buy",
-    "entryPrice": 2362.1,
-    "quantity": 0.01057,
+    "entryPrice": 2362.10,
+    "quantity": 0.0105760097,
     "entryTime": "2026-04-15T22:01:00.000Z",
-    "orderId": "KRAKEN-HISTORY",
+    "orderId": "LEGACY",
     "paper": false,
-    "notes": "Remaining Apr 15 tranche. Apr 16 23:02 rebuy (0.010667 @ $2343.57) was bought and sold by bot at 00:02 Apr 17 (+0.31%)."
+    "notes": "Original hold. Bot-managed as of 2026-05-13. Stop at $2291.24 — will sell on next run."
   },
   "BTCUSDT": {
     "side": "buy",
-    "entryPrice": 74938,
-    "quantity": 0.00066652,
+    "entryPrice": 74938.00,
+    "quantity": 0.0006663400,
     "entryTime": "2026-04-15T22:01:00.000Z",
-    "orderId": "KRAKEN-HISTORY",
+    "orderId": "LEGACY",
     "paper": false,
-    "notes": "Merged: 0.00033352 @ $74789.51 (remaining Apr 15) + 0.000333 @ $75116.30 (Apr 16 accidental rebuy). Weighted avg."
+    "notes": "Original hold. Bot-managed as of 2026-05-13. Weighted avg cost basis."
   },
   "EWTUSDT": {
     "side": "buy",
     "entryPrice": 4.009,
     "quantity": 24.12345,
     "entryTime": "2022-09-17T00:00:00.000Z",
-    "orderId": "AIRDROP",
+    "orderId": "LEGACY",
     "paper": false,
-    "notes": "XRP airdrop — EWT price Sep 17, 2022"
-  },
-  "SGBUSDT": {
-    "side": "buy",
-    "entryPrice": 1.41035,
-    "quantity": 14.23865949,
-    "entryTime": "2022-02-18T00:00:00.000Z",
-    "orderId": "AIRDROP",
-    "paper": false,
-    "notes": "XRP airdrop — SGB price Feb 18, 2022"
-  },
-  "FLRUSDT": {
-    "side": "buy",
-    "entryPrice": 0.0596,
-    "quantity": 14.2381,
-    "entryTime": "2023-01-09T00:00:00.000Z",
-    "orderId": "AIRDROP",
-    "paper": false,
-    "notes": "XRP airdrop — FLR launch price Jan 9, 2023 (Bitrue opening ~$0.0596, ATH $0.1501 on Jan 10)"
+    "notes": "XRP airdrop hold. Bot-managed as of 2026-05-13. Stop at $3.89 — will sell on next run (current ~$0.43)."
   },
   "SOLUSDT": {
     "side": "buy",
@@ -69,7 +51,7 @@
     "entryTime": "2026-05-13T06:30:56.000Z",
     "orderId": "ODZWRP-YD6V7-F5UD5J",
     "paper": false,
-    "notes": "Bot entry May 13. Previous SOL (May 9 entry) exited May 10 @ $94.69 (+1.4%)."
+    "notes": "Bot entry May 13."
   },
   "HYPEUSDT": {
     "side": "buy",
@@ -78,7 +60,7 @@
     "entryTime": "2026-05-10T20:00:26.000Z",
     "orderId": "OMD373-UNUGK-CPISIO",
     "paper": false,
-    "notes": "Combined: May 10 (3.45065562 @ $43.48) + May 13 (3.70828183 @ $40.45). Sheets was blank so stop-loss never ran on May 10 position — bot re-entered. Weighted avg entry $41.91, stop at $40.65."
+    "notes": "Combined: May 10 (3.45065562 @ $43.48) + May 13 (3.70828183 @ $40.45). Stop at $40.65 — will sell on next run (current ~$39.33)."
   },
   "HBARUSDT": {
     "side": "buy",
@@ -87,7 +69,7 @@
     "entryTime": "2026-05-13T05:15:43.000Z",
     "orderId": "ON4PG4-3LNXS-H2IHTG",
     "paper": false,
-    "notes": "Bot entry May 13. Qty set to actual Kraken balance (1635.85266) — 52.9 extra vs logged buy (1582.95) from prior dust."
+    "notes": "Bot entry May 13. Qty = actual Kraken balance."
   },
   "SHIBUSDT": {
     "side": "buy",
@@ -96,6 +78,6 @@
     "entryTime": "2026-04-30T18:00:52.000Z",
     "orderId": "O2SNQ7-P26MM-6MJFI5",
     "paper": false,
-    "notes": "Orphaned Apr 30 buy. Bot re-entered May 1 (O3PFBB), sold May 3 — but Apr 30 position was never closed (same Sheets blank-state issue as HYPE). Stop at $0.0000061304."
+    "notes": "Orphaned Apr 30 buy. Stop at $0.0000061304."
   }
 }
