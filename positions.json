@@ -73,12 +73,12 @@
   },
   "HYPEUSDT": {
     "side": "buy",
-    "entryPrice": 43.48,
-    "quantity": 3.45065562,
+    "entryPrice": 41.9105,
+    "quantity": 7.15893745,
     "entryTime": "2026-05-10T20:00:26.000Z",
     "orderId": "OMD373-UNUGK-CPISIO",
     "paper": false,
-    "notes": "WARNING: Double entry. Bot bought again May 13 @ $40.45 (3.70828183 qty, txid OVKNZD) without closing this position — possible stop-loss gap. Total HYPE exposure: ~7.16 qty."
+    "notes": "Combined: May 10 (3.45065562 @ $43.48) + May 13 (3.70828183 @ $40.45). Sheets was blank so stop-loss never ran on May 10 position — bot re-entered. Weighted avg entry $41.91, stop at $40.65."
   },
   "HBARUSDT": {
     "side": "buy",
