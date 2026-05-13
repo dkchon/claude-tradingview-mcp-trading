@@ -483,11 +483,13 @@ function checkExitConditions(position, price, rsi3, candles) {
   const { side, entryPrice } = position;
 
   if (side === "buy") {
-    // ── Always track high water mark as price rises ────────────────────────────
-    if (!position.highWaterMark || price > position.highWaterMark) {
-      position.highWaterMark = price;
-      if (price > entryPrice * 1.01) {
-        console.log(`  📈 New high water mark: $${price.toFixed(8)}  RSI(3): ${rsi3.toFixed(2)}`);
+    // ── Always track high water mark using candle high (captures intra-hour peaks)
+    const candleHigh = candles[candles.length - 1]?.high ?? price;
+    const peakPrice = Math.max(price, candleHigh);
+    if (!position.highWaterMark || peakPrice > position.highWaterMark) {
+      position.highWaterMark = peakPrice;
+      if (peakPrice > entryPrice * 1.01) {
+        console.log(`  📈 New high water mark: $${peakPrice.toFixed(8)} (candle high)  RSI(3): ${rsi3.toFixed(2)}`);
       }
     }
 
