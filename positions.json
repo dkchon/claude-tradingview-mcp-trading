@@ -24,7 +24,7 @@
     "entryTime": "2026-04-15T22:01:00.000Z",
     "orderId": "LEGACY",
     "paper": false,
-    "notes": "Original hold. Bot-managed as of 2026-05-13. Stop at $2291.24 — will sell on next run."
+    "notes": "Original hold. Bot-managed as of 2026-05-13."
   },
   "BTCUSDT": {
     "side": "buy",
@@ -34,33 +34,6 @@
     "orderId": "LEGACY",
     "paper": false,
     "notes": "Original hold. Bot-managed as of 2026-05-13. Weighted avg cost basis."
-  },
-  "EWTUSDT": {
-    "side": "buy",
-    "entryPrice": 4.009,
-    "quantity": 24.12345,
-    "entryTime": "2022-09-17T00:00:00.000Z",
-    "orderId": "LEGACY",
-    "paper": false,
-    "notes": "XRP airdrop hold. Bot-managed as of 2026-05-13. Stop at $3.89 — will sell on next run (current ~$0.43)."
-  },
-  "SOLUSDT": {
-    "side": "buy",
-    "entryPrice": 95.26,
-    "quantity": 1.57463783,
-    "entryTime": "2026-05-13T06:30:56.000Z",
-    "orderId": "ODZWRP-YD6V7-F5UD5J",
-    "paper": false,
-    "notes": "Bot entry May 13."
-  },
-  "HYPEUSDT": {
-    "side": "buy",
-    "entryPrice": 41.9105,
-    "quantity": 7.15893745,
-    "entryTime": "2026-05-10T20:00:26.000Z",
-    "orderId": "OMD373-UNUGK-CPISIO",
-    "paper": false,
-    "notes": "Combined: May 10 (3.45065562 @ $43.48) + May 13 (3.70828183 @ $40.45). Stop at $40.65 — will sell on next run (current ~$39.33)."
   },
   "HBARUSDT": {
     "side": "buy",
