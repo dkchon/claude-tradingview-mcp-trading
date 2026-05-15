@@ -1,22 +1,4 @@
 {
-  "XRPUSDT": {
-    "side": "buy",
-    "entryPrice": 0.9337,
-    "quantity": 125.02271066,
-    "entryTime": "2017-12-15T00:00:00.000Z",
-    "orderId": "LEGACY",
-    "paper": false,
-    "notes": "Original long-term hold. Bot-managed as of 2026-05-13. Entry = weighted avg cost basis."
-  },
-  "LINKUSDT": {
-    "side": "buy",
-    "entryPrice": 9.29928,
-    "quantity": 2.6883772800,
-    "entryTime": "2026-01-01T00:00:00.000Z",
-    "orderId": "LEGACY",
-    "paper": false,
-    "notes": "Original hold. Bot-managed as of 2026-05-13."
-  },
   "ETHUSDT": {
     "side": "buy",
     "entryPrice": 2362.10,
@@ -34,15 +16,6 @@
     "orderId": "LEGACY",
     "paper": false,
     "notes": "Original hold. Bot-managed as of 2026-05-13. Weighted avg cost basis."
-  },
-  "HBARUSDT": {
-    "side": "buy",
-    "entryPrice": 0.094735192,
-    "quantity": 1635.85266,
-    "entryTime": "2026-05-13T05:15:43.000Z",
-    "orderId": "ON4PG4-3LNXS-H2IHTG",
-    "paper": false,
-    "notes": "Bot entry May 13. Qty = actual Kraken balance."
   },
   "SHIBUSDT": {
     "side": "buy",
