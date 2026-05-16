@@ -1,13 +1,4 @@
 {
-  "ETHUSDT": {
-    "side": "buy",
-    "entryPrice": 2362.10,
-    "quantity": 0.0105760097,
-    "entryTime": "2026-04-15T22:01:00.000Z",
-    "orderId": "LEGACY",
-    "paper": false,
-    "notes": "Original hold. Bot-managed as of 2026-05-13."
-  },
   "BTCUSDT": {
     "side": "buy",
     "entryPrice": 74938.00,
@@ -16,14 +7,5 @@
     "orderId": "LEGACY",
     "paper": false,
     "notes": "Original hold. Bot-managed as of 2026-05-13. Weighted avg cost basis."
-  },
-  "SHIBUSDT": {
-    "side": "buy",
-    "entryPrice": 0.0000063200,
-    "quantity": 23771790.80824,
-    "entryTime": "2026-04-30T18:00:52.000Z",
-    "orderId": "O2SNQ7-P26MM-6MJFI5",
-    "paper": false,
-    "notes": "Orphaned Apr 30 buy. Stop at $0.0000061304."
   }
 }
