@@ -381,9 +381,11 @@ function signKraken(path, nonce, postData) {
   return crypto.createHmac("sha512", secret).update(message, "binary").digest("base64");
 }
 
-async function placeKrakenOrder(symbol, side, sizeUSD, price) {
+async function placeKrakenOrder(symbol, side, sizeUSD, price, exactQty = null) {
   const pair = KRAKEN_SYMBOL_MAP[symbol] || symbol;
-  const volume = (sizeUSD / price).toFixed(8);
+  // Use exactQty when closing a position — avoids floating-point round-up
+  // that causes sizeUSD/price to exceed the actual balance ("Insufficient funds")
+  const volume = exactQty !== null ? exactQty.toFixed(8) : (sizeUSD / price).toFixed(8);
   const nonce = Date.now().toString();
   const path = "/0/private/AddOrder";
 
@@ -793,23 +795,29 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         orderId: null,
       };
       const isPaperPosition = openPosition.paper === true;
+      let sellSucceeded = false;
       if (CONFIG.paperTrading || isPaperPosition) {
         closeEntry.orderId = `PAPER-CLOSE-${Date.now()}`;
         closeEntry.paperTrading = true;
+        sellSucceeded = true;
         console.log(`📋 PAPER SELL — ${openPosition.quantity.toFixed(6)} ${symbol} @ $${price.toFixed(p)}`);
       } else {
         try {
-          const order = await placeKrakenOrder(symbol, "sell", openPosition.quantity * price, price);
+          // Pass exactQty to avoid floating-point sizeUSD/price round-up exceeding balance
+          const order = await placeKrakenOrder(symbol, "sell", openPosition.quantity * price, price, openPosition.quantity);
           closeEntry.orderId = order.orderId;
+          sellSucceeded = true;
           console.log(`✅ SELL ORDER PLACED — ${order.orderId}`);
         } catch (err) {
-          console.log(`❌ SELL FAILED — ${err.message}`);
+          console.log(`❌ SELL FAILED — ${err.message} — position retained for retry next run`);
           closeEntry.error = err.message;
         }
       }
-      delete positions[symbol];
-      await postToSheets({ mode: "POSITION-CLOSE", symbol });
-      await updateBalanceInSheets(symbol, price);
+      if (sellSucceeded) {
+        delete positions[symbol];
+        await postToSheets({ mode: "POSITION-CLOSE", symbol });
+        await updateBalanceInSheets(symbol, price);
+      }
       entries.push(closeEntry);
       await writeTradeCsv(closeEntry);
       return entries;
