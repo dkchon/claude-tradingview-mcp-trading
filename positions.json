@@ -8,31 +8,13 @@
     "paper": false,
     "notes": "Original hold. Bot-managed as of 2026-05-13. Weighted avg cost basis."
   },
-  "HBARUSDT": {
-    "side": "buy",
-    "entryPrice": 0.091680,
-    "quantity": 1636.12565,
-    "entryTime": "2026-05-16T18:00:58.000Z",
-    "orderId": "OAMGWE-C2WVW-7MV5AG",
-    "paper": false,
-    "notes": "Bot entry May 16."
-  },
-  "LINKUSDT": {
-    "side": "buy",
-    "entryPrice": 9.762680,
-    "quantity": 15.36449184,
-    "entryTime": "2026-05-17T07:15:15.000Z",
-    "orderId": "O6AA2L-EGZDY-QGEEF7",
-    "paper": false,
-    "notes": "Bot entry May 17."
-  },
   "ETHUSDT": {
     "side": "buy",
-    "entryPrice": 2184.07998,
-    "quantity": 0.06868069,
-    "entryTime": "2026-05-17T07:30:17.000Z",
-    "orderId": "OAGHVN-R5BF5-5H6D3J",
+    "entryPrice": 2129.41,
+    "quantity": 0.07044238,
+    "entryTime": "2026-05-19T00:01:01.000Z",
+    "orderId": "OO5M3A-ZDVNX-TYPQ4C",
     "paper": false,
-    "notes": "Bot re-entry May 17 after manual sell at $2176 on May 16."
+    "notes": "Bot entry May 19."
   }
 }
