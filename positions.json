@@ -6,7 +6,7 @@
     "entryTime": "2026-04-15T22:01:00.000Z",
     "orderId": "LEGACY",
     "paper": false,
-    "notes": "Original hold. Bot-managed as of 2026-05-13. Weighted avg cost basis."
+    "notes": "Original hold. Bot-managed as of 2026-05-13."
   },
   "ETHUSDT": {
     "side": "buy",
@@ -14,6 +14,24 @@
     "quantity": 0.07044238,
     "entryTime": "2026-05-19T00:01:01.000Z",
     "orderId": "OO5M3A-ZDVNX-TYPQ4C",
+    "paper": false,
+    "notes": "Bot entry May 19."
+  },
+  "LINKUSDT": {
+    "side": "buy",
+    "entryPrice": 9.728370,
+    "quantity": 15.41788639,
+    "entryTime": "2026-05-19T09:00:31.000Z",
+    "orderId": "OZBUFX-PU2YV-4RQTNR",
+    "paper": false,
+    "notes": "Bot entry May 19."
+  },
+  "HBARUSDT": {
+    "side": "buy",
+    "entryPrice": 0.090240,
+    "quantity": 1661.68162,
+    "entryTime": "2026-05-19T09:00:32.000Z",
+    "orderId": "OQBFY3-PXI36-G7M77Q",
     "paper": false,
     "notes": "Bot entry May 19."
   }
