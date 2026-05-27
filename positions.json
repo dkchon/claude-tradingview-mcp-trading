@@ -1,29 +1,29 @@
 {
-  "BTCUSDT": {
+  "HYPEUSDT": {
     "side": "buy",
-    "entryPrice": 75389.90,
-    "quantity": 0.00198966,
-    "entryTime": "2026-05-23T17:16:15.000Z",
-    "orderId": "OED2AU-LXQRA-ASOQFL",
-    "paper": false,
-    "notes": "Bot entry May 23."
-  },
-  "SHIBUSDT": {
-    "side": "buy",
-    "entryPrice": 0.00000559,
-    "quantity": 26881720.43010,
-    "entryTime": "2026-05-23T17:45:19.000Z",
-    "orderId": "O2AM4A-ORRP7-YQCQAX",
-    "paper": false,
-    "notes": "Bot entry May 23."
-  },
-  "LINKUSDT": {
-    "side": "buy",
-    "entryPrice": 9.554280,
-    "quantity": 15.68962163,
-    "entryTime": "2026-05-24T00:01:28.000Z",
-    "orderId": "O7Z66C-5BQKS-5JIYBI",
+    "entryPrice": 63.130000,
+    "quantity": 2.37529691,
+    "entryTime": "2026-05-24T18:00:18.000Z",
+    "orderId": "ORMU6Q-6GX6T-IAGKO6",
     "paper": false,
     "notes": "Bot entry May 24."
+  },
+  "ETHUSDT": {
+    "side": "buy",
+    "entryPrice": 2074.59000,
+    "quantity": 0.07230309,
+    "entryTime": "2026-05-27T03:31:17.000Z",
+    "orderId": "OHXVYJ-E5FHZ-Y33BPO",
+    "paper": false,
+    "notes": "Bot entry May 27."
+  },
+  "ZBCNUSDT": {
+    "side": "buy",
+    "entryPrice": 0.0030504152,
+    "quantity": 49067.71344,
+    "entryTime": "2026-05-27T15:00:20.000Z",
+    "orderId": "OPGZRI-G7FOA-CNZVLM",
+    "paper": false,
+    "notes": "Bot entry May 27."
   }
 }
