@@ -16,5 +16,14 @@
     "orderId": "OSGSWG-VKTOG-HOVHA6",
     "paper": false,
     "notes": "Bot entry May 28."
+  },
+  "HBARUSDT": {
+    "side": "buy",
+    "entryPrice": 0.088645481,
+    "quantity": 1693.19336,
+    "entryTime": "2026-05-28T20:31:30.000Z",
+    "orderId": "O6ECGX-5XUQC-5QVZJG",
+    "paper": false,
+    "notes": "Bot entry May 28."
   }
 }
