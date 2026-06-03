@@ -188,6 +188,17 @@ function calcRSI(closes, period = 14) {
   return 100 - 100 / (1 + rs);
 }
 
+function calcATR(candles, period = 14) {
+  if (candles.length < period + 1) return null;
+  const trs = [];
+  for (let i = 1; i < candles.length; i++) {
+    const h = candles[i].high, l = candles[i].low, pc = candles[i - 1].close;
+    trs.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
+  }
+  const recent = trs.slice(-period);
+  return recent.reduce((a, b) => a + b, 0) / period;
+}
+
 // VWAP — session-based, resets at midnight UTC
 function calcVWAP(candles) {
   const midnightUTC = new Date();
@@ -204,8 +215,9 @@ function calcVWAP(candles) {
 
 // ─── Safety Check ───────────────────────────────────────────────────────────
 
-function runSafetyCheck(price, ema8, vwap, rsi3, rules) {
+function runSafetyCheck(price, ema8, ema55, vwap, rsi3, rules) {
   const results = [];
+  const p = price < 0.01 ? 8 : price < 1 ? 5 : 2;
 
   const check = (label, required, actual, pass) => {
     results.push({ label, required, actual, pass });
@@ -223,19 +235,27 @@ function runSafetyCheck(price, ema8, vwap, rsi3, rules) {
   if (bullishBias) {
     console.log("  Bias: BULLISH — checking long entry conditions\n");
 
+    // 0. Macro trend filter — must be in uptrend on EMA(55)
+    check(
+      "Price above EMA(55) (macro uptrend filter)",
+      `> ${ema55.toFixed(p)}`,
+      price.toFixed(p),
+      price > ema55,
+    );
+
     // 1. Price above VWAP
     check(
       "Price above VWAP (buyers in control)",
-      `> ${vwap.toFixed(2)}`,
-      price.toFixed(2),
+      `> ${vwap.toFixed(p)}`,
+      price.toFixed(p),
       price > vwap,
     );
 
     // 2. Price above EMA(8)
     check(
       "Price above EMA(8) (uptrend confirmed)",
-      `> ${ema8.toFixed(2)}`,
-      price.toFixed(2),
+      `> ${ema8.toFixed(p)}`,
+      price.toFixed(p),
       price > ema8,
     );
 
@@ -258,17 +278,25 @@ function runSafetyCheck(price, ema8, vwap, rsi3, rules) {
   } else if (bearishBias) {
     console.log("  Bias: BEARISH — checking short entry conditions\n");
 
+    // 0. Macro trend filter — must be in downtrend on EMA(55)
+    check(
+      "Price below EMA(55) (macro downtrend filter)",
+      `< ${ema55.toFixed(p)}`,
+      price.toFixed(p),
+      price < ema55,
+    );
+
     check(
       "Price below VWAP (sellers in control)",
-      `< ${vwap.toFixed(2)}`,
-      price.toFixed(2),
+      `< ${vwap.toFixed(p)}`,
+      price.toFixed(p),
       price < vwap,
     );
 
     check(
       "Price below EMA(8) (downtrend confirmed)",
-      `< ${ema8.toFixed(2)}`,
-      price.toFixed(2),
+      `< ${ema8.toFixed(p)}`,
+      price.toFixed(p),
       price < ema8,
     );
 
@@ -516,10 +544,13 @@ function checkExitConditions(position, price, rsi3, candles) {
       return { exit: false };
     }
 
-    // ── Hard stop loss — only used before trailing stop activates ─────────────
-    const stopLoss = entryPrice * 0.97;
+    // ── Hard stop loss — ATR-based if stored on position, else -3% fallback ──
+    const stopLoss = position.stopLoss ?? entryPrice * 0.97;
+    const stopDesc = position.atr14
+      ? `ATR stop (1.5×ATR $${position.atr14.toFixed(8)})`
+      : "entry -3%";
     if (price < stopLoss) {
-      return { exit: true, reason: `Stop loss — price $${price.toFixed(8)} below entry -3% ($${stopLoss.toFixed(8)})` };
+      return { exit: true, reason: `Stop loss — price $${price.toFixed(8)} below ${stopDesc} ($${stopLoss.toFixed(8)})` };
     }
 
   } else {
@@ -756,12 +787,15 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
   const p = price < 0.01 ? 8 : price < 1 ? 5 : 2;
 
   const ema8 = calcEMA(closes, 8);
+  const ema55 = calcEMA(closes, 55);
   const vwap = calcVWAP(candles);
   const rsi3 = calcRSI(closes, 3);
+  const atr14 = calcATR(candles, 14);
 
-  console.log(`  Price: $${price.toFixed(p)}  EMA(8): $${ema8.toFixed(p)}  VWAP: $${vwap ? vwap.toFixed(p) : "N/A"}  RSI(3): ${rsi3 ? rsi3.toFixed(2) : "N/A"}`);
+  const trendTag = price > ema55 ? "↑ above EMA55" : "↓ below EMA55";
+  console.log(`  Price: $${price.toFixed(p)}  EMA(8): $${ema8.toFixed(p)}  EMA(55): $${ema55.toFixed(p)} [${trendTag}]  VWAP: $${vwap ? vwap.toFixed(p) : "N/A"}  RSI(3): ${rsi3 ? rsi3.toFixed(2) : "N/A"}  ATR(14): $${atr14 ? atr14.toFixed(p) : "N/A"}`);
 
-  if (!vwap || !rsi3) {
+  if (!vwap || !rsi3 || !atr14) {
     console.log("  ⚠️  Not enough data — skipping.");
     return [];
   }
@@ -826,14 +860,16 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         ? ((price - openPosition.entryPrice) / openPosition.entryPrice * 100).toFixed(2)
         : ((openPosition.entryPrice - price) / openPosition.entryPrice * 100).toFixed(2);
       console.log(`  Holding — unrealised P&L: ${pnl >= 0 ? "+" : ""}${pnl}%`);
-      const hwm = openPosition.highWaterMark ? ` | Peak: $${openPosition.highWaterMark.toFixed(8)} | Trailing stop: $${(openPosition.highWaterMark * 0.98).toFixed(8)}` : "";
-      console.log(`  Exit when: RSI(3) > 85 → 2% trailing stop + bearish candle | stop loss: entry -3%${hwm}`);
+      const stopLevel = openPosition.stopLoss ?? openPosition.entryPrice * 0.97;
+      const stopType = openPosition.atr14 ? `ATR stop (1.5×ATR)` : "entry -3%";
+      const hwm = openPosition.highWaterMark ? ` | Peak: $${openPosition.highWaterMark.toFixed(8)} | Trailing stop: $${(openPosition.highWaterMark * 0.97).toFixed(8)}` : "";
+      console.log(`  Stop: $${stopLevel.toFixed(8)} [${stopType}]${hwm}`);
       return entries;
     }
   }
 
   // ── No open position — look for entry ─────────────────────────────────────
-  const { results, allPass } = runSafetyCheck(price, ema8, vwap, rsi3, rules);
+  const { results, allPass } = runSafetyCheck(price, ema8, ema55, vwap, rsi3, rules);
 
   const bullishBias = price > vwap && price > ema8;
   const tradeSide = bullishBias ? "buy" : "sell";
@@ -887,6 +923,8 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
       }
     }
     if (logEntry.orderPlaced || CONFIG.paperTrading) {
+      const atrStop = tradeSide === "buy" ? price - 1.5 * atr14 : price + 1.5 * atr14;
+      console.log(`  ATR stop set: $${atrStop.toFixed(p)} (entry $${price.toFixed(p)} ± 1.5 × ATR $${atr14.toFixed(p)})`);
       positions[symbol] = {
         side: tradeSide,
         entryPrice: price,
@@ -894,6 +932,8 @@ async function runSymbol(symbol, timeframe, rules, log, tradeSize, positions) {
         entryTime: logEntry.timestamp,
         orderId: logEntry.orderId,
         paper: CONFIG.paperTrading,
+        stopLoss: atrStop,
+        atr14,
       };
       await postToSheets({
         mode: "POSITION-OPEN",
