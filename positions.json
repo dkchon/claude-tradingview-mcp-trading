@@ -8,22 +8,13 @@
     "paper": false,
     "notes": "Bot entry May 27."
   },
-  "HBARUSDT": {
+  "CCUSDT": {
     "side": "buy",
-    "entryPrice": 0.08786,
-    "quantity": 1706.29052,
-    "entryTime": "2026-06-03T08:45:04.000Z",
-    "orderId": "TDT2MS-UYHN4-6JEX6L",
+    "entryPrice": 0.162970518,
+    "quantity": 922.73622,
+    "entryTime": "2026-06-07T00:01:31.007Z",
+    "orderId": "T4KOLV-WPSGY-5MIMTT",
     "paper": false,
-    "notes": "Bot entry Jun 3."
-  },
-  "BTCUSDT": {
-    "side": "buy",
-    "entryPrice": 66973.00,
-    "quantity": 0.00223971,
-    "entryTime": "2026-06-03T10:01:11.000Z",
-    "orderId": "TVXMVV-6WQT5-EJX67K",
-    "paper": false,
-    "notes": "Bot entry Jun 3."
+    "notes": "Bot entry Jun 7."
   }
 }
