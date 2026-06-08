@@ -8,13 +8,22 @@
     "paper": false,
     "notes": "Bot entry May 27."
   },
-  "CCUSDT": {
+  "XRPUSDT": {
     "side": "buy",
-    "entryPrice": 0.162970518,
-    "quantity": 922.73622,
-    "entryTime": "2026-06-07T00:01:31.007Z",
-    "orderId": "T4KOLV-WPSGY-5MIMTT",
+    "entryPrice": 1.15825974,
+    "quantity": 129.51802027,
+    "entryTime": "2026-06-08T03:15:24.219Z",
+    "orderId": "TXBBFU-RRP4W-ER7T36",
     "paper": false,
-    "notes": "Bot entry Jun 7."
+    "notes": "Bot entry Jun 8."
+  },
+  "HYPEUSDT": {
+    "side": "buy",
+    "entryPrice": 61.69,
+    "quantity": 2.43269543,
+    "entryTime": "2026-06-08T10:16:17.202Z",
+    "orderId": "TGIOT6-236BD-5FLPWG",
+    "paper": false,
+    "notes": "Bot entry Jun 8."
   }
 }
